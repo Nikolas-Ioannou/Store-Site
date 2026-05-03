@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bluehaven Store</title>
+    <meta
+      name="description"
+      content="Bluehaven Store is a modern online destination for electronics, phones, tablets, books, and everyday tech essentials."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container header-inner">
+          <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+            <span class="brand-mark">B</span>
+            <span class="brand-copy">
+              <strong>Bluehaven</strong>
+              <small>Tech and Books Marketplace</small>
+            </span>
+          </a>
+
+          <div class="header-search">
+            <form class="header-search-form" id="header-search-form" role="search">
+              <span class="header-search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <circle cx="11" cy="11" r="6.5"></circle>
+                  <path d="M16 16L21 21"></path>
+                </svg>
+              </span>
+              <input
+                class="header-search-input"
+                id="header-search-input"
+                name="search"
+                type="search"
+                placeholder="Search products, brands, books"
+                aria-label="Search products"
+              />
+            </form>
+          </div>
+
+          <nav class="header-shortcuts" aria-label="Quick links">
+            <a class="header-icon-link" href="favorites.html" aria-label="Go to favorites page">
+              <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
+            </a>
+            <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
+              <img class="shortcut-icon shortcut-icon-profile" src="Photos/user.png" alt="" />
+            </a>
+            <a class="header-icon-link" href="basket.html" aria-label="Go to basket page">
+              <img class="shortcut-icon shortcut-icon-basket" src="Photos/shopping-cart.png" alt="" />
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main id="top">
+        <section class="hero">
+          <div class="container hero-grid">
+            <div class="hero-copy">
+              <p class="eyebrow">Front-end concept for your store</p>
+              <h1>Electronics, phones, tablets and books in one clear storefront.</h1>
+              <p class="hero-text">
+                A homepage direction inspired by large retail stores, with a cleaner layout,
+                stronger typography, and a white-and-blue identity you can build on.
+              </p>
+
+              <form class="hero-search" id="hero-search-form">
+                <label class="search-label" for="hero-search-input">Search products</label>
+                <div class="search-shell">
+                  <input
+                    id="hero-search-input"
+                    name="search"
+                    type="search"
+                    placeholder="Search phones, tablets, books, accessories"
+                  />
+                  <button class="button button-primary" type="submit">Search</button>
+                </div>
+              </form>
+
+              <div class="hero-actions">
+                <a class="button button-primary" href="#featured">Browse deals</a>
+                <a class="button button-secondary" href="#product-browser">Open search</a>
+              </div>
+
+              <ul class="hero-stats" aria-label="Store highlights">
+                <li>
+                  <strong>500+</strong>
+                  <span>Products planned</span>
+                </li>
+                <li>
+                  <strong>24h</strong>
+                  <span>Dispatch target</span>
+                </li>
+                <li>
+                  <strong>4.8/5</strong>
+                  <span>Service goal</span>
+                </li>
+              </ul>
+            </div>
+
+            <div class="hero-visual" aria-hidden="true">
+              <div class="visual-panel visual-main">
+                <span class="panel-label">Today spotlight</span>
+                <div class="visual-artwork visual-artwork-main">
+                  <img src="Photos/shopping-store.png" alt="Storefront illustration" />
+                </div>
+                <h2>UltraBook Air 14</h2>
+                <p>Thin performance laptop for work, streaming, and study</p>
+                <div class="price-row">
+                  <strong>€899</strong>
+                  <span>Free shipping</span>
+                </div>
+              </div>
+              <div class="visual-panel visual-side visual-side-top">
+                <span class="panel-label">Smartphones</span>
+                <div class="visual-artwork visual-artwork-side">
+                  <img src="Photos/iphone.png" alt="Phone product icon" />
+                </div>
+                <strong>Trade-in bonus</strong>
+                <p>Upgrade week with extra value on old devices</p>
+              </div>
+              <div class="visual-panel visual-side visual-side-bottom">
+                <span class="panel-label">Books</span>
+                <div class="visual-artwork visual-artwork-side">
+                  <img src="Photos/home.png" alt="Home icon" />
+                </div>
+                <strong>Spring reading picks</strong>
+                <p>Bestsellers, study guides, and tech reads</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="trust-bar">
+          <div class="container trust-items">
+            <span>Authorized brands</span>
+            <span>Flexible payments</span>
+            <span>Store pickup ready</span>
+            <span>Support every day</span>
+          </div>
+        </section>
+
+        <section class="section" id="categories">
+          <div class="container">
+            <div class="section-heading">
+              <p class="eyebrow">Core categories</p>
+              <h2>Built for mixed retail from tech to reading.</h2>
+            </div>
+
+            <div class="categories-grid">
+              <article class="category-card category-card-large">
+                <span>Electronics</span>
+                <h3>Computers, accessories, gaming and smart home gear</h3>
+                <a href="#featured">Explore collection</a>
+              </article>
+              <article class="category-card">
+                <span>Phones</span>
+                <h3>Flagships, value devices and mobile accessories</h3>
+              </article>
+              <article class="category-card">
+                <span>Tablets</span>
+                <h3>Work, study and entertainment on the go</h3>
+              </article>
+              <article class="category-card">
+                <span>Books</span>
+                <h3>Fiction, non-fiction, school and professional titles</h3>
+              </article>
+              <article class="category-card accent-card">
+                <span>Bundles</span>
+                <h3>Prebuilt combinations for students, creators and home offices</h3>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section section-muted" id="featured">
+          <div class="container">
+            <div class="section-heading split-heading">
+              <div>
+                <p class="eyebrow">Featured products</p>
+                <h2>Live product search for what the user wants.</h2>
+              </div>
+              <a class="text-link" href="#offers">See weekly offers</a>
+            </div>
+
+            <section class="product-browser" id="product-browser" aria-label="Product search and results">
+              <div class="browser-toolbar">
+                <form class="browser-search" id="product-search-form">
+                  <label class="search-label" for="product-search-input">Find products</label>
+                  <div class="search-shell search-shell-wide">
+                    <input
+                      id="product-search-input"
+                      name="search"
+                      type="search"
+                      placeholder="Type what the user wants to buy"
+                    />
+                    <button class="button button-primary" type="submit">Search</button>
+                  </div>
+                </form>
+
+                <div class="browser-meta">
+                  <p id="results-summary">Loading products</p>
+                  <div class="category-filters" id="category-filters" aria-label="Category filters"></div>
+                </div>
+              </div>
+
+              <div class="products-grid" id="products-grid" aria-live="polite"></div>
+              <p class="browser-message" id="browser-message" hidden></p>
+            </section>
+          </div>
+        </section>
+
+        <section class="section section-tight">
+          <div class="container dashboard-strip">
+            <article class="dashboard-card">
+              <p class="eyebrow">Trending now</p>
+              <strong id="trending-name">Loading</strong>
+              <span id="trending-score">Fetching live ranking</span>
+            </article>
+            <article class="dashboard-card">
+              <p class="eyebrow">Best seller category</p>
+              <strong id="best-category-name">Loading</strong>
+              <span id="best-category-revenue">Checking revenue</span>
+            </article>
+            <article class="dashboard-card">
+              <p class="eyebrow">Total revenue</p>
+              <strong id="total-revenue-amount">Loading</strong>
+              <span id="total-revenue-orders">Counting paid orders</span>
+            </article>
+          </div>
+        </section>
+
+        <section class="section offers" id="offers">
+          <div class="container offers-grid">
+            <article class="offer-banner">
+              <p class="eyebrow">This week</p>
+              <h2>Blue Deal Days</h2>
+              <p>
+                A reusable promotional area for financing, bundle discounts, or seasonal
+                campaigns.
+              </p>
+              <a class="button button-primary" href="#">Claim offers</a>
+            </article>
+
+            <div class="offer-list">
+              <article>
+                <strong>Student setup</strong>
+                <p>Laptop, wireless mouse and backpack with a combined discount</p>
+              </article>
+              <article>
+                <strong>Phone refresh</strong>
+                <p>Trade in your old device and receive bonus store credit</p>
+              </article>
+              <article>
+                <strong>Reading corner</strong>
+                <p>Buy two books and unlock a lower price on the third title</p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section" id="services">
+          <div class="container">
+            <div class="section-heading">
+              <p class="eyebrow">Service layer</p>
+              <h2>The support blocks a serious retail front end needs.</h2>
+            </div>
+
+            <div class="services-grid">
+              <article class="service-card">
+                <div class="service-icon-wrap">
+                  <img class="service-icon" src="Photos/shopping-cart.png" alt="Click and collect icon" />
+                </div>
+                <h3>Click and collect</h3>
+                <p>Reserve online and pick up at a physical location or partner point</p>
+              </article>
+              <article class="service-card">
+                <div class="service-icon-wrap">
+                  <img class="service-icon" src="Photos/delivery-truck.png" alt="Business delivery icon" />
+                </div>
+                <h3>Business orders</h3>
+                <p>Dedicated flows for offices, schools, and bulk technology purchases</p>
+              </article>
+              <article class="service-card">
+                <div class="service-icon-wrap">
+                  <img class="service-icon" src="Photos/telephone.png" alt="Repair and care icon" />
+                </div>
+                <h3>Repair and care</h3>
+                <p>Warranty support, device setup and post-sale assistance</p>
+              </article>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-grid">
+          <form class="newsletter" action="#" method="get">
+            <a class="brand brand-footer newsletter-brand" href="#top">
+              <span class="brand-mark">B</span>
+              <span class="brand-copy">
+                <strong>Bluehaven</strong>
+                <small>Temporary brand concept</small>
+              </span>
+            </a>
+            <label for="email">Get launch updates</label>
+            <div class="newsletter-row">
+              <input id="email" type="email" placeholder="Email address" />
+              <button type="submit">Notify me</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="container payment-footer" aria-label="Supported payments and security">
+          <div class="payment-footer-copy">
+            <strong>Secure payments</strong>
+            <span>Checkout methods and security logos sit lower on the page, closer to the footer, like large electronics retailers.</span>
+          </div>
+          <div class="payment-strip">
+            <img src="Photos/visa.avif" alt="Visa" />
+            <img src="Photos/mastercard.avif" alt="Mastercard" />
+            <img src="Photos/paypal.avif" alt="PayPal" />
+            <img src="Photos/amex.avif" alt="American Express" />
+            <img src="Photos/maestro.avif" alt="Maestro" />
+            <img src="Photos/securecode.avif" alt="SecureCode" />
+            <img src="Photos/symantec.avif" alt="Symantec" />
+          </div>
+        </div>
+
+        <div class="container footer-bottom">
+          <div class="footer-socials" aria-label="Social links">
+            <a href="#" aria-label="Facebook"><img src="Photos/facebook.png" alt="Facebook" /></a>
+            <a href="#" aria-label="Instagram"><img src="Photos/instagram.png" alt="Instagram" /></a>
+            <a href="#" aria-label="YouTube"><img src="Photos/youtube.png" alt="YouTube" /></a>
+          </div>
+          <p>Bluehaven Store concept for electronics, phones, tablets and books.</p>
+          <p><span id="year"></span> All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
