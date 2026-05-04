@@ -27,7 +27,10 @@ GET    /api/users
 GET    /api/users/:id
 POST   /api/users
 POST   /api/users/:id/addresses
+PATCH  /api/users/:id/addresses/:address_id
+DELETE /api/users/:id/addresses/:address_id
 POST   /api/users/:id/invoice-profile
+DELETE /api/users/:id/invoice-profile
 PATCH  /api/users/:id/profile
 
 GET    /api/auth/session?token=...

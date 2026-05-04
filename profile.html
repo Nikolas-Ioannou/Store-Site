@@ -52,7 +52,7 @@
 
     <main class="standalone-page profile-page-shell">
       <section class="profile-auth-layout">
-        <article class="auth-panel auth-panel-intro">
+        <article class="auth-panel auth-panel-intro" id="auth-intro-panel">
           <div class="intro-badge-row">
             <img src="Photos/user.png" alt="" />
             <span class="intro-badge">Bluehaven ID</span>
@@ -76,13 +76,21 @@
               <span>Review the latest activity from your account</span>
             </div>
           </div>
-          <a class="button button-secondary" href="index.html">Back to store</a>
+          <div class="intro-actions">
+            <button class="button button-primary" id="intro-signup-button" type="button">Sign up</button>
+            <a class="button button-secondary" href="index.html">Back to store</a>
+          </div>
         </article>
 
         <article class="auth-panel auth-panel-forms" id="auth-forms-panel">
           <div class="auth-message" id="auth-message" hidden></div>
 
-          <section class="auth-card">
+          <div class="auth-switcher" aria-label="Account access modes">
+            <button class="auth-switcher-button is-active" id="show-login-button" type="button">Log in</button>
+            <button class="auth-switcher-button" id="show-register-button" type="button">Sign up</button>
+          </div>
+
+          <section class="auth-card" id="login-card">
             <div class="card-heading-row">
               <div>
                 <p class="eyebrow">Returning customer</p>
@@ -100,9 +108,10 @@
               </label>
               <button class="button button-primary" type="submit">Log in</button>
             </form>
+            <button class="button button-secondary auth-inline-button" id="login-signup-button" type="button">Need an account? Sign up</button>
           </section>
 
-          <section class="auth-card">
+          <section class="auth-card" id="register-card" hidden>
             <div class="card-heading-row">
               <div>
                 <p class="eyebrow">New customer</p>
@@ -124,23 +133,27 @@
                   <input type="email" name="email" autocomplete="email" required />
                 </label>
                 <label>
-                  <span>Τηλέφωνο</span>
+                  <span>Phone</span>
                   <input type="tel" name="phone" autocomplete="tel" />
                 </label>
+                <label>
+                  <span>Landline</span>
+                  <input type="tel" name="landline" autocomplete="tel-national" />
+                </label>
                 <label class="auth-form-grid-full">
-                  <span>Διεύθυνση</span>
+                  <span>Address</span>
                   <input type="text" name="line_1" autocomplete="address-line1" />
                 </label>
                 <label>
-                  <span>ΤΚ</span>
+                  <span>Postal code</span>
                   <input type="text" name="postal_code" autocomplete="postal-code" />
                 </label>
                 <label>
-                  <span>Πόλη</span>
+                  <span>City</span>
                   <input type="text" name="city" autocomplete="address-level2" />
                 </label>
                 <label>
-                  <span>Νομός</span>
+                  <span>Region</span>
                   <input type="text" name="region" autocomplete="address-level1" />
                 </label>
                 <label>
@@ -152,24 +165,24 @@
               <div class="invoice-box">
                 <label class="checkbox-line">
                   <input type="checkbox" name="invoice_requested" value="1" />
-                  <span>Προσθήκη τιμολογίου για αγορές προϊόντων</span>
+                  <span>Add invoice details for business purchases</span>
                 </label>
 
                 <div class="auth-form-grid">
                   <label class="auth-form-grid-full">
-                    <span>Επωνυμία</span>
+                    <span>Company name</span>
                     <input type="text" name="company_name" />
                   </label>
                   <label>
-                    <span>ΑΦΜ</span>
+                    <span>VAT number</span>
                     <input type="text" name="tax_id" />
                   </label>
                   <label>
-                    <span>ΔΟΥ</span>
+                    <span>Tax office</span>
                     <input type="text" name="tax_office" />
                   </label>
                   <label class="auth-form-grid-full">
-                    <span>Επάγγελμα</span>
+                    <span>Profession</span>
                     <input type="text" name="profession" />
                   </label>
                 </div>
@@ -177,156 +190,266 @@
 
               <button class="button button-primary" type="submit">Create account</button>
             </form>
+            <button class="button button-secondary auth-inline-button" id="register-login-button" type="button">Already registered? Log in</button>
           </section>
         </article>
 
         <article class="auth-panel account-panel" id="account-panel" hidden>
-          <div class="account-head">
-            <div class="account-avatar">B</div>
-            <div class="account-head-copy">
-              <p class="eyebrow">Signed in</p>
-              <h2 id="account-name">Bluehaven Customer</h2>
-              <p class="auth-copy" id="account-email">customer@bluehaven.test</p>
-            </div>
-          </div>
-
-          <nav class="account-section-nav" aria-label="Profile sections">
-            <a href="#profile-data-card">Profile</a>
-            <a href="#billing-data-card">Billing</a>
-            <a href="#orders-card">Orders</a>
-          </nav>
-
-          <div class="account-grid">
-            <div class="account-stat">
-              <span>Role</span>
-              <strong id="account-role">Customer</strong>
-            </div>
-            <div class="account-stat">
-              <span>Phone</span>
-              <strong id="account-phone">No phone saved</strong>
-            </div>
-            <div class="account-stat">
-              <span>Τιμολόγιο</span>
-              <strong id="account-invoice-status">Χωρίς τιμολόγιο</strong>
-            </div>
-          </div>
-
-          <section class="account-details-card" id="profile-data-card">
-            <div class="split-heading account-orders-head">
-              <div>
-                <p class="eyebrow">Profile data</p>
-                <h3>Τροποποίηση στοιχείων χρήστη</h3>
-              </div>
-            </div>
-
-            <form id="account-personal-form" class="auth-form">
-              <div class="auth-form-grid">
-                <label>
-                  <span>Όνομα</span>
-                  <input type="text" name="first_name" autocomplete="given-name" />
-                </label>
-                <label>
-                  <span>Επώνυμο</span>
-                  <input type="text" name="last_name" autocomplete="family-name" />
-                </label>
-                <label class="auth-form-grid-full">
-                  <span>Email</span>
-                  <input type="email" name="email" autocomplete="email" />
-                </label>
-                <label>
-                  <span>Τηλέφωνο</span>
-                  <input type="tel" name="phone" autocomplete="tel" />
-                </label>
-              </div>
-
-              <div class="form-action-row">
-                <button class="button button-primary" type="submit">Save profile</button>
-              </div>
-            </form>
-          </section>
-
-          <section class="account-details-card" id="billing-data-card">
-            <div class="split-heading account-orders-head">
-              <div>
-                <p class="eyebrow">Billing details</p>
-                <h3>Διεύθυνση και στοιχεία τιμολογίου</h3>
-              </div>
-            </div>
-
-            <form id="account-details-form" class="auth-form">
-              <div class="auth-form-grid">
-                <label>
-                  <span>Τηλέφωνο</span>
-                  <input type="tel" name="phone" autocomplete="tel" />
-                </label>
-                <label class="auth-form-grid-full">
-                  <span>Διεύθυνση</span>
-                  <input type="text" name="line_1" autocomplete="address-line1" />
-                </label>
-                <label>
-                  <span>ΤΚ</span>
-                  <input type="text" name="postal_code" autocomplete="postal-code" />
-                </label>
-                <label>
-                  <span>Πόλη</span>
-                  <input type="text" name="city" autocomplete="address-level2" />
-                </label>
-                <label>
-                  <span>Νομός</span>
-                  <input type="text" name="region" autocomplete="address-level1" />
-                </label>
-              </div>
-
-              <div class="invoice-box">
-                <label class="checkbox-line">
-                  <input type="checkbox" name="invoice_requested" value="1" />
-                  <span>Έκδοση τιμολογίου για τις αγορές μου</span>
-                </label>
-
-                <div class="auth-form-grid">
-                  <label class="auth-form-grid-full">
-                    <span>Επωνυμία</span>
-                    <input type="text" name="company_name" />
-                  </label>
-                  <label>
-                    <span>ΑΦΜ</span>
-                    <input type="text" name="tax_id" />
-                  </label>
-                  <label>
-                    <span>ΔΟΥ</span>
-                    <input type="text" name="tax_office" />
-                  </label>
-                  <label class="auth-form-grid-full">
-                    <span>Επάγγελμα</span>
-                    <input type="text" name="profession" />
-                  </label>
+          <div class="account-hub-layout">
+            <aside class="account-hub-sidebar">
+              <nav class="account-side-nav" aria-label="Account sections">
+                <button class="account-side-link account-side-link-button is-active" data-profile-toggle="true" type="button">Profile</button>
+                <div class="account-sub-nav" id="profile-sub-nav">
+                  <a class="account-sub-link is-active" data-section="personal-data-card" href="#personal-data-card">Personal data</a>
+                  <a class="account-sub-link" data-section="invoice-data-card" href="#invoice-data-card">Invoice data</a>
+                  <a class="account-sub-link" data-section="addresses-data-card" href="#addresses-data-card">My addresses</a>
                 </div>
-              </div>
+                <a class="account-side-link" data-section="orders-card" href="#orders-card">Orders</a>
+                <a class="account-side-link" data-section="installments-card" href="#installments-card">Installment purchases</a>
+                <a class="account-side-link" data-section="coupons-card" href="#coupons-card">My coupons</a>
+                <a class="account-side-link" data-section="favorites-card" href="#favorites-card">Favorites</a>
+                <button class="account-side-link account-side-link-button" id="logout-button" type="button">Log out</button>
+              </nav>
+            </aside>
 
-              <div class="form-action-row">
-                <button class="button button-primary" type="submit">Save details</button>
-              </div>
-            </form>
-          </section>
+            <div class="account-hub-main">
+              <section class="account-orders profile-subsection-panel" id="personal-data-card">
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Profile</p>
+                    <h3>Personal data</h3>
+                  </div>
+                  <div class="account-section-actions">
+                    <button class="button button-secondary" id="personal-edit-button" type="button">Edit</button>
+                  </div>
+                </div>
+                <article class="summary-record-card profile-editor-card" id="personal-form-card" hidden>
+                  <form id="inline-personal-form" class="auth-form">
+                    <div class="auth-form-grid">
+                      <label>
+                        <span>First name</span>
+                        <input type="text" name="first_name" autocomplete="given-name" required />
+                      </label>
+                      <label>
+                        <span>Last name</span>
+                        <input type="text" name="last_name" autocomplete="family-name" required />
+                      </label>
+                      <label class="auth-form-grid-full">
+                        <span>Email</span>
+                        <input type="email" name="email" autocomplete="email" required />
+                      </label>
+                      <label>
+                        <span>Phone</span>
+                        <input type="tel" name="phone" autocomplete="tel" />
+                      </label>
+                      <label>
+                        <span>Landline</span>
+                        <input type="tel" name="landline" autocomplete="tel-national" />
+                      </label>
+                    </div>
+                    <div class="form-action-row form-action-row-start">
+                      <button class="button button-primary" type="submit">Save</button>
+                      <button class="button button-secondary" id="personal-cancel-button" type="button">Cancel</button>
+                    </div>
+                  </form>
+                </article>
+                <div class="account-summary-list" id="account-profile-summary">
+                  <p class="account-empty">No profile details available yet</p>
+                </div>
+              </section>
 
-          <section class="account-orders" id="orders-card">
-            <div class="split-heading account-orders-head">
-              <div>
-                <p class="eyebrow">Recent orders</p>
-                <h3>Your latest activity</h3>
-              </div>
+              <section class="account-orders profile-subsection-panel" id="invoice-data-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Profile</p>
+                    <h3>Invoice data</h3>
+                  </div>
+                </div>
+                <article class="summary-record-card profile-editor-card" id="invoice-form-card" hidden>
+                  <div class="page-copy">
+                    <p class="eyebrow">Invoice form</p>
+                    <h4 id="invoice-form-title">Add invoice profile</h4>
+                  </div>
+                  <form id="invoice-form" class="auth-form">
+                    <div class="auth-form-grid">
+                      <label class="auth-form-grid-full">
+                        <span>Company name</span>
+                        <input type="text" name="company_name" required />
+                      </label>
+                      <label>
+                        <span>VAT number</span>
+                        <input type="text" name="tax_id" required />
+                      </label>
+                      <label>
+                        <span>Tax office</span>
+                        <input type="text" name="tax_office" />
+                      </label>
+                      <label class="auth-form-grid-full">
+                        <span>Profession</span>
+                        <input type="text" name="profession" />
+                      </label>
+                      <label class="auth-form-grid-full">
+                        <span>Address</span>
+                        <input type="text" name="line_1" autocomplete="address-line1" required />
+                      </label>
+                      <label>
+                        <span>City</span>
+                        <input type="text" name="city" autocomplete="address-level2" required />
+                      </label>
+                      <label>
+                        <span>Postal code</span>
+                        <input type="text" name="postal_code" autocomplete="postal-code" required />
+                      </label>
+                      <label>
+                        <span>Region</span>
+                        <input type="text" name="region" autocomplete="address-level1" />
+                      </label>
+                      <label>
+                        <span>Phone</span>
+                        <input type="tel" name="phone" autocomplete="tel" />
+                      </label>
+                    </div>
+                    <div class="form-action-row form-action-row-start">
+                      <button class="button button-primary" type="submit">Save</button>
+                      <button class="button button-secondary" id="invoice-cancel-button" type="button">Cancel</button>
+                    </div>
+                  </form>
+                </article>
+                <div class="account-summary-list" id="account-invoice-summary">
+                  <p class="account-empty">No invoice profile saved</p>
+                </div>
+                <div class="profile-subsection-footer-actions" id="invoice-actions-row">
+                  <button class="button button-secondary plus-action-button" id="invoice-add-button" type="button" aria-label="Add invoice">+</button>
+                </div>
+              </section>
+
+              <section class="account-orders profile-subsection-panel" id="addresses-data-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Profile</p>
+                    <h3>My addresses</h3>
+                  </div>
+                </div>
+                <article class="summary-record-card profile-editor-card" id="address-form-card" hidden>
+                  <div class="page-copy">
+                    <p class="eyebrow">Address form</p>
+                    <h4 id="address-form-title">Add address</h4>
+                  </div>
+                  <form id="address-form" class="auth-form">
+                    <input type="hidden" name="address_id" />
+                    <div class="auth-form-grid">
+                      <label>
+                        <span>Label</span>
+                        <input type="text" name="label" placeholder="Home, Office, Pickup point" />
+                      </label>
+                      <label>
+                        <span>Recipient name</span>
+                        <input type="text" name="recipient_name" required />
+                      </label>
+                      <label class="auth-form-grid-full">
+                        <span>Address line 1</span>
+                        <input type="text" name="line_1" autocomplete="address-line1" required />
+                      </label>
+                      <label class="auth-form-grid-full">
+                        <span>Address line 2</span>
+                        <input type="text" name="line_2" autocomplete="address-line2" />
+                      </label>
+                      <label>
+                        <span>City</span>
+                        <input type="text" name="city" autocomplete="address-level2" required />
+                      </label>
+                      <label>
+                        <span>Postal code</span>
+                        <input type="text" name="postal_code" autocomplete="postal-code" required />
+                      </label>
+                      <label>
+                        <span>Region</span>
+                        <input type="text" name="region" autocomplete="address-level1" />
+                      </label>
+                      <label>
+                        <span>Country code</span>
+                        <input type="text" name="country_code" value="GR" maxlength="2" />
+                      </label>
+                    </div>
+                    <div class="inline-grid-2">
+                      <label class="checkbox-line">
+                        <input type="checkbox" name="is_default_shipping" value="1" />
+                        <span>Use as default shipping address</span>
+                      </label>
+                      <label class="checkbox-line">
+                        <input type="checkbox" name="is_default_billing" value="1" />
+                        <span>Use as default billing address</span>
+                      </label>
+                    </div>
+                    <div class="form-action-row form-action-row-start">
+                      <button class="button button-primary" type="submit">Save</button>
+                      <button class="button button-secondary" id="address-cancel-button" type="button">Cancel</button>
+                    </div>
+                  </form>
+                </article>
+                <div class="account-summary-list" id="account-address-summary">
+                  <p class="account-empty">No saved addresses</p>
+                </div>
+                <div class="profile-subsection-footer-actions" id="address-actions-row">
+                  <button class="button button-secondary plus-action-button" id="address-add-button" type="button" aria-label="Add address">+</button>
+                </div>
+              </section>
+
+              <section class="account-orders" id="orders-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Orders</p>
+                    <h3>Your latest activity</h3>
+                  </div>
+                  <p class="account-empty" id="account-order-count">0 orders</p>
+                </div>
+                <div class="account-orders-list" id="account-orders-list">
+                  <p class="account-empty">No orders yet</p>
+                </div>
+              </section>
+
+              <section class="account-orders" id="installments-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Installments</p>
+                    <h3>Products bought with installments</h3>
+                  </div>
+                </div>
+                <div class="account-orders-list" id="account-installments-list">
+                  <p class="account-empty">No installment purchases found</p>
+                </div>
+              </section>
+
+              <section class="account-orders" id="coupons-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">My coupons</p>
+                    <h3>Your available savings</h3>
+                  </div>
+                </div>
+                <div class="account-orders-list" id="account-coupons-list">
+                  <p class="account-empty">No coupons available yet</p>
+                </div>
+              </section>
+
+              <section class="account-orders" id="favorites-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Favorites</p>
+                    <h3>Your saved products</h3>
+                  </div>
+                  <a class="button button-secondary" href="favorites.html">Open favorites page</a>
+                </div>
+                <div class="account-orders-list" id="account-favorites-list">
+                  <p class="account-empty">No favorite products saved yet</p>
+                </div>
+              </section>
             </div>
-            <div class="account-orders-list" id="account-orders-list">
-              <p class="account-empty">No orders yet</p>
-            </div>
-          </section>
-
-          <p class="account-empty" id="account-order-count">0 orders</p>
-
-          <button class="button button-secondary" id="logout-button" type="button">Log out</button>
+          </div>
         </article>
       </section>
     </main>
+
     <script src="profile.js"></script>
   </body>
 </html>

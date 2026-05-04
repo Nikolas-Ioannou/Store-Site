@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Invoice | Bluehaven Store</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+          <span class="brand-mark">B</span>
+          <span class="brand-copy">
+            <strong>Bluehaven</strong>
+            <small>Tech and Books Marketplace</small>
+          </span>
+        </a>
+
+        <div class="header-search">
+          <form class="header-search-form" action="index.html#product-browser" role="search">
+            <span class="header-search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="M16 16L21 21"></path>
+              </svg>
+            </span>
+            <input class="header-search-input" name="search" type="search" placeholder="Search products, brands, books" aria-label="Search products" />
+          </form>
+        </div>
+
+        <nav class="header-shortcuts" aria-label="Quick links">
+          <a class="header-icon-link" href="favorites.html" aria-label="Go to favorites page">
+            <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
+          </a>
+          <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
+            <img class="shortcut-icon shortcut-icon-profile" src="Photos/user.png" alt="" />
+          </a>
+          <a class="header-icon-link" href="basket.html" aria-label="Go to basket page">
+            <img class="shortcut-icon shortcut-icon-basket" src="Photos/shopping-cart.png" alt="" />
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="standalone-page account-page-shell">
+      <section class="account-page-main account-page-main-full">
+        <div class="account-hub-layout">
+          <aside class="account-hub-sidebar">
+            <nav class="account-side-nav" aria-label="Account sections">
+              <a class="account-side-link is-active" href="account-profile.html">Profile</a>
+              <div class="account-sub-nav">
+                <a class="account-sub-link" href="account-profile.html">Personal data</a>
+                <a class="account-sub-link is-active" href="account-invoice.html">Invoice data</a>
+                <a class="account-sub-link" href="account-addresses.html">My addresses</a>
+              </div>
+              <a class="account-side-link" href="profile.html#orders-card">Orders</a>
+              <a class="account-side-link" href="profile.html#installments-card">Installment purchases</a>
+              <a class="account-side-link" href="profile.html#coupons-card">My coupons</a>
+              <a class="account-side-link" href="profile.html#favorites-card">Favorites</a>
+              <button class="account-side-link account-side-link-button" id="logout-button" type="button">Log out</button>
+            </nav>
+          </aside>
+
+          <div class="account-hub-main">
+            <div class="auth-message" id="account-message" hidden></div>
+
+            <article class="data-card">
+            <div class="page-heading-row">
+              <div class="page-copy">
+                <p class="eyebrow">Invoice</p>
+                <h1>Manage invoice details</h1>
+                <p>Use this profile when you want to place eligible orders with business invoice information.</p>
+              </div>
+              <button class="button button-primary" id="invoice-open-button" type="button">Add or edit invoice</button>
+            </div>
+
+            <div class="record-list" id="invoice-list">
+              <article class="empty-state-card">
+                <strong>Loading invoice profile</strong>
+              </article>
+            </div>
+            </article>
+
+            <article class="data-card" id="invoice-form-card" hidden>
+            <div class="page-copy">
+              <p class="eyebrow">Invoice form</p>
+              <h2 id="invoice-form-title">Add invoice profile</h2>
+            </div>
+
+            <form id="invoice-form" class="auth-form">
+              <div class="auth-form-grid">
+                <label class="auth-form-grid-full">
+                  <span>Company name</span>
+                  <input type="text" name="company_name" required />
+                </label>
+                <label>
+                  <span>VAT number</span>
+                  <input type="text" name="tax_id" required />
+                </label>
+                <label>
+                  <span>Tax office</span>
+                  <input type="text" name="tax_office" />
+                </label>
+                <label class="auth-form-grid-full">
+                  <span>Profession</span>
+                  <input type="text" name="profession" />
+                </label>
+                <label class="auth-form-grid-full">
+                  <span>Address</span>
+                  <input type="text" name="line_1" autocomplete="address-line1" required />
+                </label>
+                <label>
+                  <span>City</span>
+                  <input type="text" name="city" autocomplete="address-level2" required />
+                </label>
+                <label>
+                  <span>Postal code</span>
+                  <input type="text" name="postal_code" autocomplete="postal-code" required />
+                </label>
+                <label>
+                  <span>Region</span>
+                  <input type="text" name="region" autocomplete="address-level1" />
+                </label>
+                <label>
+                  <span>Phone</span>
+                  <input type="tel" name="phone" autocomplete="tel" />
+                </label>
+              </div>
+
+              <div class="form-action-row form-action-row-start">
+                <button class="button button-primary" type="submit">Save invoice profile</button>
+                <button class="button button-secondary" id="invoice-cancel-button" type="button">Cancel</button>
+                <button class="button button-danger" id="invoice-delete-button" type="button" hidden>Delete invoice</button>
+              </div>
+            </form>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="account.js"></script>
+  </body>
+</html>

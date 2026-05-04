@@ -77,7 +77,7 @@ def build_session_payload(session_token):
     session = db.fetch_one(
         '''
         SELECT us.id, us.user_id, us.session_token, us.expires_at, us.last_seen_at, us.created_at,
-               u.email, u.first_name, u.last_name, u.phone, u.role, u.is_active, u.last_login_at, u.updated_at
+               u.email, u.first_name, u.last_name, u.phone, u.landline, u.role, u.is_active, u.last_login_at, u.updated_at
         FROM user_sessions us
         INNER JOIN users u ON u.id = us.user_id
         WHERE us.session_token = ?
@@ -102,6 +102,7 @@ def build_session_payload(session_token):
             'first_name': session['first_name'],
             'last_name': session['last_name'],
             'phone': session['phone'],
+            'landline': session['landline'],
             'role': session['role'],
             'is_active': session['is_active'],
             'last_login_at': session['last_login_at'],
@@ -174,7 +175,7 @@ def upsert_primary_address(connection, user_id, body, fallback_recipient=None):
     ).fetchone()
 
     params = (
-        body.get('label', 'Κύρια διεύθυνση'),
+        body.get('label', 'Primary address'),
         recipient_name,
         line_1,
         body.get('line_2'),
@@ -472,6 +473,14 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             if profile_match:
                 return self.handle_update_user_profile(int(profile_match.group(1)), body)
 
+            address_match = re.fullmatch(r'/api/users/(\d+)/addresses/(\d+)', path)
+            if address_match:
+                return self.handle_update_user_address(
+                    int(address_match.group(1)),
+                    int(address_match.group(2)),
+                    body,
+                )
+
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
         except ValueError as error:
             return self.send_json({'error': str(error)}, HTTPStatus.BAD_REQUEST)
@@ -491,6 +500,17 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                     int(cart_item_match.group(1)),
                     int(cart_item_match.group(2)),
                 )
+
+            address_match = re.fullmatch(r'/api/users/(\d+)/addresses/(\d+)', path)
+            if address_match:
+                return self.handle_delete_user_address(
+                    int(address_match.group(1)),
+                    int(address_match.group(2)),
+                )
+
+            invoice_match = re.fullmatch(r'/api/users/(\d+)/invoice-profile', path)
+            if invoice_match:
+                return self.handle_delete_invoice_profile(int(invoice_match.group(1)))
 
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
         except Exception as error:
@@ -565,7 +585,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
     def handle_get_user(self, user_id):
         user = db.fetch_one(
             '''
-            SELECT id, email, first_name, last_name, phone, role, is_active, last_login_at, created_at, updated_at
+            SELECT id, email, first_name, last_name, phone, landline, role, is_active, last_login_at, created_at, updated_at
             FROM users
             WHERE id = ?
             ''',
@@ -587,7 +607,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             (user_id,),
         )
         invoice_profile = db.fetch_one(
-            'SELECT company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
+            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
             (user_id,),
         )
         primary_address = db.fetch_one(
@@ -638,8 +658,8 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             return self.send_json({'error': 'Email is already registered'}, HTTPStatus.CONFLICT)
         user_id = db.execute(
             '''
-            INSERT INTO users (email, password_hash, first_name, last_name, phone, role, is_active)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (email, password_hash, first_name, last_name, phone, landline, role, is_active)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
                 email,
@@ -647,6 +667,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 first_name,
                 last_name,
                 body.get('phone'),
+                body.get('landline'),
                 body.get('role', 'customer'),
                 int(body.get('is_active', 1)),
             ),
@@ -667,8 +688,8 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         def create_user(connection):
             cursor = connection.execute(
                 '''
-                INSERT INTO users (email, password_hash, first_name, last_name, phone, role, is_active, last_login_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO users (email, password_hash, first_name, last_name, phone, landline, role, is_active, last_login_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''',
                 (
                     email,
@@ -676,6 +697,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                     first_name,
                     last_name,
                     body.get('phone'),
+                    body.get('landline'),
                     'customer',
                     1,
                     utc_timestamp(),
@@ -697,13 +719,20 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
 
         db.run_transaction(lambda connection: upsert_invoice_profile(connection, user_id, body))
         invoice_profile = db.fetch_one(
-            'SELECT company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
+            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
             (user_id,),
         )
         self.send_json({'invoice_profile': row_to_dict(invoice_profile)})
 
+    def handle_delete_invoice_profile(self, user_id):
+        if db.fetch_one('SELECT id FROM users WHERE id = ?', (user_id,)) is None:
+            return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
+
+        db.execute('DELETE FROM invoice_profiles WHERE user_id = ?', (user_id,))
+        self.send_json({'status': 'deleted'})
+
     def handle_update_user_profile(self, user_id, body):
-        user = db.fetch_one('SELECT id, first_name, last_name, email, phone FROM users WHERE id = ?', (user_id,))
+        user = db.fetch_one('SELECT id, first_name, last_name, email, phone, landline FROM users WHERE id = ?', (user_id,))
         if user is None:
             return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
 
@@ -712,6 +741,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             last_name = str(body.get('last_name', user['last_name'])).strip()
             email = str(body.get('email', user['email'])).strip().lower()
             phone = body.get('phone', user['phone'])
+            landline = body.get('landline', user['landline'])
 
             if not first_name or not last_name or not email:
                 raise ValueError('first_name, last_name, and email are required')
@@ -724,8 +754,8 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 raise ValueError('Email is already registered')
 
             connection.execute(
-                'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?',
-                (first_name, last_name, email, phone, user_id),
+                'UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ?, landline = ? WHERE id = ?',
+                (first_name, last_name, email, phone, landline, user_id),
             )
 
             recipient = f"{first_name} {last_name}".strip()
@@ -781,30 +811,105 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             if not body.get(field):
                 raise ValueError(f'{field} is required')
 
-        address_id = db.execute(
-            '''
-            INSERT INTO user_addresses (
-                user_id, label, recipient_name, line_1, line_2, city, postal_code, region,
-                country_code, is_default_shipping, is_default_billing
+        def create_address(connection):
+            is_default_shipping = int(to_bool(body.get('is_default_shipping', 0)))
+            is_default_billing = int(to_bool(body.get('is_default_billing', 0)))
+
+            if is_default_shipping:
+                connection.execute('UPDATE user_addresses SET is_default_shipping = 0 WHERE user_id = ?', (user_id,))
+            if is_default_billing:
+                connection.execute('UPDATE user_addresses SET is_default_billing = 0 WHERE user_id = ?', (user_id,))
+
+            cursor = connection.execute(
+                '''
+                INSERT INTO user_addresses (
+                    user_id, label, recipient_name, line_1, line_2, city, postal_code, region,
+                    country_code, is_default_shipping, is_default_billing
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''',
+                (
+                    user_id,
+                    body.get('label'),
+                    body['recipient_name'],
+                    body['line_1'],
+                    body.get('line_2'),
+                    body['city'],
+                    body['postal_code'],
+                    body.get('region'),
+                    body.get('country_code', 'GR'),
+                    is_default_shipping,
+                    is_default_billing,
+                ),
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''',
-            (
-                user_id,
-                body.get('label'),
-                body['recipient_name'],
-                body['line_1'],
-                body.get('line_2'),
-                body['city'],
-                body['postal_code'],
-                body.get('region'),
-                body.get('country_code', 'GR'),
-                int(body.get('is_default_shipping', 0)),
-                int(body.get('is_default_billing', 0)),
-            ),
-        )
+            return cursor.lastrowid
+
+        address_id = db.run_transaction(create_address)
         address = db.fetch_one('SELECT * FROM user_addresses WHERE id = ?', (address_id,))
         self.send_json(row_to_dict(address), HTTPStatus.CREATED)
+
+    def handle_update_user_address(self, user_id, address_id, body):
+        address = db.fetch_one(
+            'SELECT * FROM user_addresses WHERE id = ? AND user_id = ?',
+            (address_id, user_id),
+        )
+        if address is None:
+            return self.send_json({'error': 'Address not found'}, HTTPStatus.NOT_FOUND)
+
+        recipient_name = str(body.get('recipient_name', address['recipient_name'])).strip()
+        line_1 = str(body.get('line_1', address['line_1'])).strip()
+        city = str(body.get('city', address['city'])).strip()
+        postal_code = str(body.get('postal_code', address['postal_code'])).strip()
+
+        if not recipient_name or not line_1 or not city or not postal_code:
+            raise ValueError('recipient_name, line_1, city, and postal_code are required')
+
+        is_default_shipping = int(to_bool(body.get('is_default_shipping', address['is_default_shipping'])))
+        is_default_billing = int(to_bool(body.get('is_default_billing', address['is_default_billing'])))
+
+        def update_address(connection):
+            if is_default_shipping:
+                connection.execute('UPDATE user_addresses SET is_default_shipping = 0 WHERE user_id = ?', (user_id,))
+            if is_default_billing:
+                connection.execute('UPDATE user_addresses SET is_default_billing = 0 WHERE user_id = ?', (user_id,))
+
+            connection.execute(
+                '''
+                UPDATE user_addresses
+                SET label = ?, recipient_name = ?, line_1 = ?, line_2 = ?, city = ?, postal_code = ?,
+                    region = ?, country_code = ?, is_default_shipping = ?, is_default_billing = ?
+                WHERE id = ? AND user_id = ?
+                ''',
+                (
+                    str(body.get('label', address['label'] or '')).strip() or None,
+                    recipient_name,
+                    line_1,
+                    str(body.get('line_2', address['line_2'] or '')).strip() or None,
+                    city,
+                    postal_code,
+                    str(body.get('region', address['region'] or '')).strip() or None,
+                    str(body.get('country_code', address['country_code'] or 'GR')).strip() or 'GR',
+                    is_default_shipping,
+                    is_default_billing,
+                    address_id,
+                    user_id,
+                ),
+            )
+
+        db.run_transaction(update_address)
+        updated_address = db.fetch_one('SELECT * FROM user_addresses WHERE id = ? AND user_id = ?', (address_id, user_id))
+        self.send_json(row_to_dict(updated_address))
+
+    def handle_delete_user_address(self, user_id, address_id):
+        address = db.fetch_one(
+            'SELECT id FROM user_addresses WHERE id = ? AND user_id = ?',
+            (address_id, user_id),
+        )
+        if address is None:
+            return self.send_json({'error': 'Address not found'}, HTTPStatus.NOT_FOUND)
+
+        db.execute('DELETE FROM user_addresses WHERE id = ? AND user_id = ?', (address_id, user_id))
+        self.send_json({'status': 'deleted'})
 
     def handle_create_cart(self, body):
         user_id = body.get('user_id')
@@ -1274,7 +1379,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
     def _build_full_user_payload(self, user_id):
         user = db.fetch_one(
             '''
-            SELECT id, email, first_name, last_name, phone, role, is_active, last_login_at, created_at, updated_at
+            SELECT id, email, first_name, last_name, phone, landline, role, is_active, last_login_at, created_at, updated_at
             FROM users
             WHERE id = ?
             ''',
@@ -1293,7 +1398,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             (user_id,),
         )
         invoice_profile = db.fetch_one(
-            'SELECT company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
+            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
             (user_id,),
         )
         primary_address = db.fetch_one(
@@ -1335,7 +1440,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
     def _safe_user(self, user_id):
         user = db.fetch_one(
             '''
-            SELECT id, email, first_name, last_name, phone, role, is_active, last_login_at, created_at, updated_at
+            SELECT id, email, first_name, last_name, phone, landline, role, is_active, last_login_at, created_at, updated_at
             FROM users
             WHERE id = ?
             ''',

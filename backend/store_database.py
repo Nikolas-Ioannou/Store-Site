@@ -25,6 +25,7 @@ class StoreDatabase:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
             connection.executescript(SCHEMA_PATH.read_text())
+            self._ensure_column(connection, 'users', 'landline', 'TEXT')
             category_count = connection.execute(
                 'SELECT COUNT(*) FROM categories'
             ).fetchone()[0]
@@ -32,6 +33,14 @@ class StoreDatabase:
                 for seed_path in SEED_PATHS:
                     connection.executescript(seed_path.read_text())
             connection.commit()
+
+    def _ensure_column(self, connection: sqlite3.Connection, table_name: str, column_name: str, column_definition: str) -> None:
+        existing_columns = {
+            row['name']
+            for row in connection.execute(f'PRAGMA table_info({table_name})').fetchall()
+        }
+        if column_name not in existing_columns:
+            connection.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}')
 
     def fetch_all(self, query: str, params: tuple = ()) -> list[sqlite3.Row]:
         with self.connect() as connection:

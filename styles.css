@@ -392,9 +392,209 @@ input {
   height: 18px;
 }
 
+.intro-actions,
+.auth-switcher,
+.account-hub-layout,
+.account-side-nav,
+.account-section-actions {
+  display: flex;
+}
+
+.intro-actions,
+.auth-switcher,
+.account-section-actions {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.auth-switcher {
+  margin-bottom: 8px;
+  padding: 6px;
+  border-radius: 18px;
+  background: rgba(11, 99, 243, 0.08);
+}
+
+.auth-switcher-button {
+  flex: 1;
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--primary-deep);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-switcher-button.is-active {
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(16, 33, 59, 0.08);
+}
+
+.auth-inline-button {
+  width: 100%;
+}
+
 .account-panel {
   display: grid;
   gap: 24px;
+  grid-column: 1 / -1;
+}
+
+.account-hub-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.account-hub-sidebar {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  position: sticky;
+  top: 110px;
+}
+
+.account-hub-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.account-hub-head {
+  padding: 18px;
+}
+
+.account-hub-head .account-head-main {
+  width: 100%;
+  align-items: flex-start;
+}
+
+.account-hub-head .account-head-copy {
+  min-width: 0;
+}
+
+.account-hub-head h2 {
+  font-size: clamp(1.6rem, 2.2vw, 2.3rem);
+  line-height: 1;
+  word-break: break-word;
+}
+
+.account-hub-head .auth-copy {
+  overflow-wrap: anywhere;
+}
+
+.account-side-nav {
+  width: 100%;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(11, 99, 243, 0.1);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+}
+
+.account-sub-nav {
+  display: grid;
+  gap: 8px;
+  padding: 2px 0 4px 16px;
+}
+
+.account-sub-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: rgba(11, 99, 243, 0.04);
+  color: var(--primary-deep);
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.account-sub-link.is-active {
+  background: rgba(11, 99, 243, 0.12);
+  border-color: rgba(11, 99, 243, 0.08);
+}
+
+.account-side-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: rgba(11, 99, 243, 0.06);
+  color: var(--primary-deep);
+  font-weight: 700;
+}
+
+.account-side-link {
+  width: 100%;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
+}
+
+.account-side-link.is-active {
+  background: var(--primary);
+  color: #fff;
+  border-color: transparent;
+}
+
+.account-side-link-button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.profile-subsections-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-subsection-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-subsection-card {
+  display: grid;
+  gap: 18px;
+}
+
+.profile-inline-record-card {
+  display: grid;
+  gap: 14px;
+}
+
+.profile-subsection-footer-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.plus-action-button {
+  width: 48px;
+  min-width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 16px;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.profile-subsection-card .summary-record-head {
+  align-items: flex-start;
+}
+
+.profile-subsection-card .summary-record-head > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.account-overview-grid-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .account-head {
@@ -407,6 +607,30 @@ input {
   background:
     radial-gradient(circle at top right, rgba(11, 99, 243, 0.12), transparent 36%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(238, 245, 255, 0.92) 100%);
+}
+
+.account-head-wide {
+  justify-content: space-between;
+}
+
+.account-head-main,
+.account-head-actions,
+.page-heading-row,
+.record-actions,
+.summary-record-head,
+.account-sidebar-meta {
+  display: flex;
+  align-items: center;
+}
+
+.account-head-main,
+.account-head-actions {
+  gap: 16px;
+}
+
+.account-head-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .account-avatar {
@@ -432,28 +656,81 @@ input {
   gap: 4px;
 }
 
-.account-section-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.account-section-nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: var(--surface-alt);
-  color: var(--primary-deep);
-  font-weight: 700;
-  border: 1px solid rgba(11, 99, 243, 0.08);
-}
-
 .account-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+}
+
+.account-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.account-overview-card {
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.account-summary-list,
+.record-list,
+.record-card-copy,
+.page-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-row {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(16, 33, 59, 0.08);
+}
+
+.summary-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.summary-row span,
+.summary-record-card p,
+.record-card-copy p,
+.page-copy p,
+.form-helper {
+  color: var(--muted);
+}
+
+.summary-record-card,
+.record-card,
+.empty-state-card,
+.data-card {
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(11, 99, 243, 0.1);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+}
+
+.summary-record-head,
+.page-heading-row,
+.record-actions {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-pill,
+.record-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(11, 99, 243, 0.1);
+  color: var(--primary-deep);
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .account-stat {
@@ -499,6 +776,95 @@ input {
   display: flex;
   justify-content: flex-end;
   padding-top: 6px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.form-action-row-start {
+  justify-content: flex-start;
+}
+
+.button-danger {
+  border: 1px solid rgba(168, 28, 28, 0.16);
+  background: #fff1f1;
+  color: #a81c1c;
+}
+
+.account-page-shell {
+  place-items: start center;
+  padding-top: 52px;
+}
+
+.account-page-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: min(1240px, 100%);
+  align-items: start;
+  gap: 28px;
+}
+
+.account-page-main {
+  display: grid;
+  gap: 18px;
+}
+
+.account-page-main-full {
+  width: min(980px, 100%);
+  margin: 0 auto;
+}
+
+.account-page-header-card {
+  padding: 24px;
+}
+
+.data-card {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border-radius: 24px;
+}
+
+.empty-state-card {
+  display: grid;
+  gap: 10px;
+}
+
+.record-list {
+  gap: 16px;
+}
+
+.record-card {
+  display: grid;
+  gap: 14px;
+}
+
+.record-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.record-card-copy strong {
+  font-size: 1rem;
+}
+
+.record-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.page-copy h1,
+.page-copy h2,
+.page-copy h3 {
+  max-width: none;
+}
+
+.inline-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
 .order-line strong,
@@ -1422,6 +1788,9 @@ h3 {
 }
 
 @media (max-width: 1024px) {
+  .account-hub-layout,
+  .account-page-grid,
+  .account-overview-grid,
   .hero-grid,
   .offers-grid,
   .footer-grid,
@@ -1431,6 +1800,19 @@ h3 {
     grid-template-columns: 1fr 1fr;
   }
 
+
+  .account-page-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-hub-sidebar {
+    position: static;
+    width: 100%;
+  }
+
+  .account-overview-grid-compact {
+    grid-template-columns: 1fr;
+  }
   .hero-grid,
   .offers-grid,
   .footer-grid {
@@ -1440,6 +1822,8 @@ h3 {
   .category-card {
     grid-column: span 6;
   }
+  .inline-grid-2,
+  .account-overview-grid,
 
   .visual-main {
     min-height: 300px;
@@ -1472,9 +1856,27 @@ h3 {
 
   .intro-badge-row,
   .account-head,
-  .account-section-nav,
+  .account-head-wide,
+  .account-head-main,
+  .account-head-actions,
+  .account-hub-layout,
+  .record-card-top,
   .form-action-row {
     align-items: flex-start;
+  }
+
+  .account-head-wide,
+  .account-head-main,
+  .account-head-actions,
+  .account-hub-layout,
+  .record-card-top {
+    flex-direction: column;
+  }
+
+  .auth-switcher-button,
+  .intro-actions .button,
+  .account-section-actions .button {
+    width: 100%;
   }
 
   .form-action-row {

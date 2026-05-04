@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Profile | Bluehaven Store</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+          <span class="brand-mark">B</span>
+          <span class="brand-copy">
+            <strong>Bluehaven</strong>
+            <small>Tech and Books Marketplace</small>
+          </span>
+        </a>
+
+        <div class="header-search">
+          <form class="header-search-form" action="index.html#product-browser" role="search">
+            <span class="header-search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="M16 16L21 21"></path>
+              </svg>
+            </span>
+            <input class="header-search-input" name="search" type="search" placeholder="Search products, brands, books" aria-label="Search products" />
+          </form>
+        </div>
+
+        <nav class="header-shortcuts" aria-label="Quick links">
+          <a class="header-icon-link" href="favorites.html" aria-label="Go to favorites page">
+            <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
+          </a>
+          <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
+            <img class="shortcut-icon shortcut-icon-profile" src="Photos/user.png" alt="" />
+          </a>
+          <a class="header-icon-link" href="basket.html" aria-label="Go to basket page">
+            <img class="shortcut-icon shortcut-icon-basket" src="Photos/shopping-cart.png" alt="" />
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="standalone-page account-page-shell">
+      <section class="account-page-main account-page-main-full">
+        <div class="account-hub-layout">
+          <aside class="account-hub-sidebar">
+            <nav class="account-side-nav" aria-label="Account sections">
+              <a class="account-side-link is-active" href="account-profile.html">Profile</a>
+              <div class="account-sub-nav">
+                <a class="account-sub-link is-active" href="account-profile.html">Personal data</a>
+                <a class="account-sub-link" href="account-invoice.html">Invoice data</a>
+                <a class="account-sub-link" href="account-addresses.html">My addresses</a>
+              </div>
+              <a class="account-side-link" href="profile.html#orders-card">Orders</a>
+              <a class="account-side-link" href="profile.html#installments-card">Installment purchases</a>
+              <a class="account-side-link" href="profile.html#coupons-card">My coupons</a>
+              <a class="account-side-link" href="profile.html#favorites-card">Favorites</a>
+              <button class="account-side-link account-side-link-button" id="logout-button" type="button">Log out</button>
+            </nav>
+          </aside>
+
+          <div class="account-hub-main">
+            <div class="auth-message" id="account-message" hidden></div>
+
+            <article class="data-card">
+            <div class="page-heading-row">
+              <div class="page-copy">
+                <p class="eyebrow">Profile</p>
+                <h1>Edit your personal details</h1>
+                <p>Manage your email, first name, last name, mobile phone, and landline from one place.</p>
+              </div>
+            </div>
+
+            <form id="profile-details-form" class="auth-form">
+              <div class="auth-form-grid">
+                <label>
+                  <span>First name</span>
+                  <input type="text" name="first_name" autocomplete="given-name" required />
+                </label>
+                <label>
+                  <span>Last name</span>
+                  <input type="text" name="last_name" autocomplete="family-name" required />
+                </label>
+                <label class="auth-form-grid-full">
+                  <span>Email</span>
+                  <input type="email" name="email" autocomplete="email" required />
+                </label>
+                <label>
+                  <span>Phone</span>
+                  <input type="tel" name="phone" autocomplete="tel" />
+                </label>
+                <label>
+                  <span>Landline</span>
+                  <input type="tel" name="landline" autocomplete="tel-national" />
+                </label>
+              </div>
+
+              <div class="form-action-row form-action-row-start">
+                <button class="button button-primary" type="submit">Save profile</button>
+                <a class="button button-secondary" href="profile.html#personal-data-card">Cancel</a>
+              </div>
+            </form>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="account.js"></script>
+  </body>
+</html>
