@@ -37,7 +37,7 @@
         </div>
 
         <nav class="header-shortcuts" aria-label="Quick links">
-          <a class="header-icon-link" href="favorites.html" aria-label="Go to favorites page">
+          <a class="header-icon-link" data-favorites-link="true" href="profile.html#favorites-card" aria-label="Go to favorites section">
             <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
           </a>
           <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
@@ -204,11 +204,15 @@
                   <a class="account-sub-link" data-section="invoice-data-card" href="#invoice-data-card">Invoice data</a>
                   <a class="account-sub-link" data-section="addresses-data-card" href="#addresses-data-card">My addresses</a>
                 </div>
-                <a class="account-side-link" data-section="orders-card" href="#orders-card">Orders</a>
+                <button class="account-side-link account-side-link-button" data-orders-toggle="true" type="button">Orders</button>
+                <div class="account-sub-nav" id="orders-sub-nav" hidden>
+                  <a class="account-sub-link" data-section="pending-orders-card" href="#pending-orders-card">Pending orders</a>
+                  <a class="account-sub-link" data-section="completed-orders-card" href="#completed-orders-card">Completed orders</a>
+                </div>
                 <a class="account-side-link" data-section="installments-card" href="#installments-card">Installment purchases</a>
                 <a class="account-side-link" data-section="coupons-card" href="#coupons-card">My coupons</a>
                 <a class="account-side-link" data-section="favorites-card" href="#favorites-card">Favorites</a>
-                <button class="account-side-link account-side-link-button" id="logout-button" type="button">Log out</button>
+                <button class="account-side-link account-side-link-button account-side-link-danger" id="logout-button" type="button">Log out</button>
               </nav>
             </aside>
 
@@ -266,11 +270,8 @@
                   </div>
                 </div>
                 <article class="summary-record-card profile-editor-card" id="invoice-form-card" hidden>
-                  <div class="page-copy">
-                    <p class="eyebrow">Invoice form</p>
-                    <h4 id="invoice-form-title">Add invoice profile</h4>
-                  </div>
                   <form id="invoice-form" class="auth-form">
+                    <input type="hidden" name="invoice_id" />
                     <div class="auth-form-grid">
                       <label class="auth-form-grid-full">
                         <span>Company name</span>
@@ -331,20 +332,12 @@
                   </div>
                 </div>
                 <article class="summary-record-card profile-editor-card" id="address-form-card" hidden>
-                  <div class="page-copy">
-                    <p class="eyebrow">Address form</p>
-                    <h4 id="address-form-title">Add address</h4>
-                  </div>
                   <form id="address-form" class="auth-form">
                     <input type="hidden" name="address_id" />
                     <div class="auth-form-grid">
                       <label>
                         <span>Label</span>
                         <input type="text" name="label" placeholder="Home, Office, Pickup point" />
-                      </label>
-                      <label>
-                        <span>Recipient name</span>
-                        <input type="text" name="recipient_name" required />
                       </label>
                       <label class="auth-form-grid-full">
                         <span>Address line 1</span>
@@ -371,16 +364,6 @@
                         <input type="text" name="country_code" value="GR" maxlength="2" />
                       </label>
                     </div>
-                    <div class="inline-grid-2">
-                      <label class="checkbox-line">
-                        <input type="checkbox" name="is_default_shipping" value="1" />
-                        <span>Use as default shipping address</span>
-                      </label>
-                      <label class="checkbox-line">
-                        <input type="checkbox" name="is_default_billing" value="1" />
-                        <span>Use as default billing address</span>
-                      </label>
-                    </div>
                     <div class="form-action-row form-action-row-start">
                       <button class="button button-primary" type="submit">Save</button>
                       <button class="button button-secondary" id="address-cancel-button" type="button">Cancel</button>
@@ -395,17 +378,56 @@
                 </div>
               </section>
 
-              <section class="account-orders" id="orders-card" hidden>
+              <section class="account-orders profile-subsection-panel" id="pending-orders-card" hidden>
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Orders</p>
-                    <h3>Your latest activity</h3>
+                    <h3>Pending orders</h3>
                   </div>
-                  <p class="account-empty" id="account-order-count">0 orders</p>
                 </div>
-                <div class="account-orders-list" id="account-orders-list">
-                  <p class="account-empty">No orders yet</p>
+                <article class="summary-record-card profile-subsection-card orders-section-card">
+                  <div class="account-orders-list" id="account-orders-pending-list">
+                    <p class="account-empty">No pending orders</p>
+                  </div>
+                  <div class="orders-pagination" id="orders-pending-pagination" hidden></div>
+                </article>
+              </section>
+
+              <section class="account-orders profile-subsection-panel" id="completed-orders-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Orders</p>
+                    <h3>Completed orders</h3>
+                  </div>
                 </div>
+                <article class="summary-record-card profile-subsection-card orders-section-card">
+                  <div class="summary-record-head orders-section-head">
+                    <div>
+                      <strong>Completed orders</strong>
+                      <p class="form-helper">Finished orders you can review</p>
+                    </div>
+                  </div>
+                  <div class="orders-toolbar">
+                    <div class="orders-search-panel">
+                      <label class="search-label" for="orders-search-input">Search completed orders</label>
+                      <div class="search-shell search-shell-wide orders-search-shell">
+                        <input id="orders-search-input" type="search" placeholder="Search order number or status" />
+                      </div>
+                    </div>
+                    <label class="orders-filter-panel">
+                      <span class="search-label">Date filter</span>
+                      <select id="orders-date-filter" class="orders-date-select">
+                        <option value="all">All dates</option>
+                        <option value="30">Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="365">Last 12 months</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="account-orders-list" id="account-orders-completed-list">
+                    <p class="account-empty">No completed orders</p>
+                  </div>
+                </article>
               </section>
 
               <section class="account-orders" id="installments-card" hidden>
@@ -438,11 +460,23 @@
                     <p class="eyebrow">Favorites</p>
                     <h3>Your saved products</h3>
                   </div>
-                  <a class="button button-secondary" href="favorites.html">Open favorites page</a>
+                  <p class="account-empty" id="favorites-results-summary">0 products</p>
+                </div>
+                <div class="favorites-browser-toolbar">
+                  <div class="favorites-search-panel">
+                    <label class="search-label" for="favorites-search-input">Search favorites</label>
+                    <div class="search-shell search-shell-wide favorites-search-shell">
+                      <input id="favorites-search-input" type="search" placeholder="Search saved products, brand, category" />
+                    </div>
+                  </div>
+                  <div class="browser-meta favorites-browser-meta">
+                    <div class="category-filters" id="favorites-filter-chips" aria-label="Favorite category filters"></div>
+                  </div>
                 </div>
                 <div class="account-orders-list" id="account-favorites-list">
                   <p class="account-empty">No favorite products saved yet</p>
                 </div>
+                <div class="favorites-pagination" id="favorites-pagination" hidden></div>
               </section>
             </div>
           </div>
@@ -450,6 +484,7 @@
       </section>
     </main>
 
-    <script src="profile.js"></script>
+    <script src="site.js?v=20260506b"></script>
+    <script src="profile.js?v=20260506w"></script>
   </body>
 </html>

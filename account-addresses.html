@@ -31,7 +31,7 @@
         </div>
 
         <nav class="header-shortcuts" aria-label="Quick links">
-          <a class="header-icon-link" href="favorites.html" aria-label="Go to favorites page">
+          <a class="header-icon-link" data-favorites-link="true" href="profile.html#favorites-card" aria-label="Go to favorites section">
             <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
           </a>
           <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
@@ -96,10 +96,6 @@
                   <span>Label</span>
                   <input type="text" name="label" placeholder="Home, Office, Pickup point" />
                 </label>
-                <label>
-                  <span>Recipient name</span>
-                  <input type="text" name="recipient_name" required />
-                </label>
                 <label class="auth-form-grid-full">
                   <span>Address line 1</span>
                   <input type="text" name="line_1" autocomplete="address-line1" required />
@@ -126,17 +122,6 @@
                 </label>
               </div>
 
-              <div class="inline-grid-2">
-                <label class="checkbox-line">
-                  <input type="checkbox" name="is_default_shipping" value="1" />
-                  <span>Use as default shipping address</span>
-                </label>
-                <label class="checkbox-line">
-                  <input type="checkbox" name="is_default_billing" value="1" />
-                  <span>Use as default billing address</span>
-                </label>
-              </div>
-
               <div class="form-action-row form-action-row-start">
                 <button class="button button-primary" type="submit">Save address</button>
                 <button class="button button-secondary" id="address-cancel-button" type="button">Cancel</button>
@@ -148,6 +133,7 @@
       </section>
     </main>
 
+    <script src="site.js"></script>
     <script src="account.js"></script>
   </body>
 </html>

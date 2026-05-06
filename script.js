@@ -25,6 +25,7 @@ const userRole = document.getElementById('user-role');
 const userOrders = document.getElementById('user-orders');
 
 const CURRENT_USER_STORAGE_KEY = 'storeUserId';
+const storeSite = window.StoreSite || null;
 
 const state = {
   products: [],
@@ -133,6 +134,7 @@ function getFilteredProducts() {
 function createProductCard(product) {
   const card = document.createElement('article');
   card.className = 'product-card';
+  const productId = Number(product.product_id ?? product.id);
 
   const productImage = getProductImageSource(product);
   const imageMarkup = productImage
@@ -144,8 +146,9 @@ function createProductCard(product) {
     <div class="product-copy">
       <div class="product-card-header">
         <span class="tag">${product.category_name}</span>
-        <span class="product-brand">${product.brand || 'Bluehaven Select'}</span>
+        <button class="favorite-product-button" type="button" data-favorite-product-id="${productId}"></button>
       </div>
+      <span class="product-brand">${product.brand || 'Bluehaven Select'}</span>
       <h3>${product.product_name}</h3>
       <p>${truncateText(product.description)}</p>
       <div class="product-meta">
@@ -157,13 +160,43 @@ function createProductCard(product) {
 
   const image = card.querySelector('img');
   const visual = card.querySelector('.product-card-visual');
+  const favoriteButton = card.querySelector('[data-favorite-product-id]');
   if (image && visual) {
     image.addEventListener('error', () => {
       visual.innerHTML = buildFallbackMarkup(product);
     }, { once: true });
   }
 
+  if (favoriteButton) {
+    syncFavoriteButton(favoriteButton, product);
+    favoriteButton.addEventListener('click', () => {
+      if (!storeSite?.isLoggedIn?.()) {
+        window.location.href = 'profile.html';
+        return;
+      }
+
+      storeSite.toggleFavoriteProduct(productId);
+      syncFavoriteButton(favoriteButton, product);
+    });
+  }
+
   return card;
+}
+
+function syncFavoriteButton(button, product) {
+  if (!button) {
+    return;
+  }
+
+  const productId = Number(product.product_id ?? product.id);
+  const isFavorite = Boolean(storeSite?.isFavoriteProduct?.(productId));
+  button.classList.toggle('is-active', isFavorite);
+  button.setAttribute('aria-pressed', String(isFavorite));
+  button.setAttribute(
+    'aria-label',
+    `${isFavorite ? 'Remove' : 'Add'} ${product.product_name} ${isFavorite ? 'from' : 'to'} favorites`,
+  );
+  button.textContent = isFavorite ? 'Saved' : 'Favorite';
 }
 
 function renderProducts() {

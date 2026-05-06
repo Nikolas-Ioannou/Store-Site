@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order Details | Bluehaven Store</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+          <span class="brand-mark">B</span>
+          <span class="brand-copy">
+            <strong>Bluehaven</strong>
+            <small>Tech and Books Marketplace</small>
+          </span>
+        </a>
+
+        <div class="header-search">
+          <form class="header-search-form" action="index.html#product-browser" role="search">
+            <span class="header-search-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <circle cx="11" cy="11" r="6.5"></circle>
+                <path d="M16 16L21 21"></path>
+              </svg>
+            </span>
+            <input class="header-search-input" name="search" type="search" placeholder="Search products, brands, books" aria-label="Search products" />
+          </form>
+        </div>
+
+        <nav class="header-shortcuts" aria-label="Quick links">
+          <a class="header-icon-link" data-favorites-link="true" href="profile.html#favorites-card" aria-label="Go to favorites section">
+            <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
+          </a>
+          <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
+            <img class="shortcut-icon shortcut-icon-profile" src="Photos/user.png" alt="" />
+          </a>
+          <a class="header-icon-link" href="basket.html" aria-label="Go to basket page">
+            <img class="shortcut-icon shortcut-icon-basket" src="Photos/shopping-cart.png" alt="" />
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="standalone-page order-view-shell">
+      <section class="order-view-layout">
+        <div class="auth-message" id="order-view-message" hidden></div>
+
+        <section class="order-view-content" id="order-view-content" hidden>
+          <article class="order-view-card order-view-hero-card">
+            <div class="order-view-order-block">
+              <p class="eyebrow">Order details</p>
+              <h1 id="order-view-title">Order details</h1>
+              <small id="order-view-date">No date yet</small>
+            </div>
+            <div class="order-view-status-block">
+              <img class="order-view-status-icon" id="order-view-status-icon" src="Photos/box.png" alt="" />
+              <div>
+                <p class="eyebrow">Status</p>
+                <h2 id="order-view-status-title">Preparing</h2>
+                <p id="order-view-status-copy">Your order is being prepared.</p>
+              </div>
+            </div>
+          </article>
+
+          <div class="order-view-grid">
+            <article class="order-view-card order-view-card-wide">
+              <div class="order-view-section-head">
+                <img src="Photos/box.png" alt="" />
+                <div>
+                  <span>Products</span>
+                  <strong id="order-view-products-count">0 items</strong>
+                </div>
+              </div>
+              <div class="order-view-products" id="order-view-products"></div>
+            </article>
+
+            <article class="order-view-card">
+              <div class="order-view-section-head">
+                <img src="Photos/home.png" alt="" />
+                <div>
+                  <span>Shipping address</span>
+                  <strong id="order-view-address-label">Saved address</strong>
+                </div>
+              </div>
+              <p class="order-detail-copy" id="order-view-address"></p>
+            </article>
+
+            <article class="order-view-card">
+              <div class="order-view-section-head">
+                <img src="Photos/telephone.png" alt="" />
+                <div>
+                  <span>Contact</span>
+                  <strong id="order-view-phone">No phone saved</strong>
+                </div>
+              </div>
+              <p class="order-detail-copy" id="order-view-tracking"></p>
+            </article>
+
+            <article class="order-view-card">
+              <div class="order-view-section-head">
+                <img src="Photos/delivery-truck.png" alt="" />
+                <div>
+                  <span>Payment and shipment</span>
+                  <strong id="order-view-payment">Payment pending</strong>
+                </div>
+              </div>
+              <ul class="order-view-meta-list" id="order-view-meta"></ul>
+            </article>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="site.js?v=20260506b"></script>
+    <script src="order.js?v=20260506w"></script>
+  </body>
+  </html>

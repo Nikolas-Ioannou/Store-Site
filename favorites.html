@@ -37,7 +37,7 @@
         </div>
 
         <nav class="header-shortcuts" aria-label="Quick links">
-          <a class="header-icon-link" href="favorites.html" aria-label="Go to favorites page">
+          <a class="header-icon-link" data-favorites-link="true" href="profile.html#favorites-card" aria-label="Go to favorites section">
             <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
           </a>
           <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
@@ -50,13 +50,37 @@
       </div>
     </header>
 
-    <main class="standalone-page">
-      <section class="standalone-card">
-        <img src="Photos/heart.png" alt="" />
-        <h1>Your Favorites</h1>
-        <p>This page can hold the products the customer has saved for later.</p>
-        <a class="button button-primary" href="index.html">Back to store</a>
+    <main class="standalone-page favorites-page-shell">
+      <section class="favorites-page-layout">
+        <article class="favorites-page-hero">
+          <img src="Photos/heart.png" alt="" />
+          <div class="page-copy">
+            <p class="eyebrow">Favorites</p>
+            <h1>Your saved products</h1>
+            <p id="favorites-page-copy">Review the products you have saved for later.</p>
+          </div>
+          <div class="favorites-page-actions">
+            <a class="button button-primary" href="index.html">Back to store</a>
+            <a class="button button-secondary" href="profile.html#favorites-card">Open profile favorites</a>
+          </div>
+        </article>
+
+        <section class="account-orders favorites-page-panel">
+          <div class="split-heading account-orders-head">
+            <div>
+              <p class="eyebrow">Saved list</p>
+              <h3>Favorite products</h3>
+            </div>
+            <p class="account-empty" id="favorites-count">0 saved</p>
+          </div>
+          <div class="account-orders-list" id="favorites-products-list">
+            <p class="account-empty">Loading favorites</p>
+          </div>
+        </section>
       </section>
     </main>
+
+    <script src="site.js"></script>
+    <script src="favorites.js"></script>
   </body>
 </html>

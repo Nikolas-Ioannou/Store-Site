@@ -131,7 +131,6 @@ function renderAddresses(addresses = []) {
       <div class="record-card-top">
         <div class="record-card-copy">
           <strong>${escapeHtml(normalizeAddressLabel(address.label, address.recipient_name))}</strong>
-          <p>${escapeHtml(address.recipient_name || '')}</p>
         </div>
         <div class="record-pills">${pills.join('')}</div>
       </div>
@@ -204,15 +203,12 @@ function openAddressEditor(addressId = null) {
   addressForm.reset();
   addressForm.elements.address_id.value = address ? String(address.id) : '';
   addressForm.elements.label.value = address?.label || '';
-  addressForm.elements.recipient_name.value = address?.recipient_name || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim();
   addressForm.elements.line_1.value = address?.line_1 || '';
   addressForm.elements.line_2.value = address?.line_2 || '';
   addressForm.elements.city.value = address?.city || '';
   addressForm.elements.postal_code.value = address?.postal_code || '';
   addressForm.elements.region.value = address?.region || '';
   addressForm.elements.country_code.value = address?.country_code || 'GR';
-  addressForm.elements.is_default_shipping.checked = Number(address?.is_default_shipping || 0) === 1;
-  addressForm.elements.is_default_billing.checked = Number(address?.is_default_billing || 0) === 1;
   if (addressFormTitle) {
     addressFormTitle.textContent = address ? 'Edit address' : 'Add address';
   }
@@ -315,15 +311,12 @@ async function handleAddressSave(event) {
   const addressId = String(formData.get('address_id') || '').trim();
   const payload = {
     label: String(formData.get('label') || '').trim(),
-    recipient_name: String(formData.get('recipient_name') || '').trim(),
     line_1: String(formData.get('line_1') || '').trim(),
     line_2: String(formData.get('line_2') || '').trim(),
     city: String(formData.get('city') || '').trim(),
     postal_code: String(formData.get('postal_code') || '').trim(),
     region: String(formData.get('region') || '').trim(),
     country_code: String(formData.get('country_code') || 'GR').trim(),
-    is_default_shipping: formData.get('is_default_shipping') === '1',
-    is_default_billing: formData.get('is_default_billing') === '1',
   };
 
   try {

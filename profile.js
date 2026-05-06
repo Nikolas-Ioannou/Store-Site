@@ -14,7 +14,7 @@ const showRegisterButton = document.getElementById('show-register-button');
 const introSignupButton = document.getElementById('intro-signup-button');
 const loginSignupButton = document.getElementById('login-signup-button');
 const registerLoginButton = document.getElementById('register-login-button');
-const accountPersonalForm = document.getElementById('account-personal-form');
+const accountPersonalForm = document.getElementById('inline-personal-form');
 const accountDetailsForm = document.getElementById('account-details-form');
 const logoutButton = document.getElementById('logout-button');
 const accountName = document.getElementById('account-name');
@@ -22,14 +22,21 @@ const accountEmail = document.getElementById('account-email');
 const accountRole = document.getElementById('account-role');
 const accountPhone = document.getElementById('account-phone');
 const accountInvoiceStatus = document.getElementById('account-invoice-status');
-const accountOrderCount = document.getElementById('account-order-count');
-const accountOrdersList = document.getElementById('account-orders-list');
+const accountOrdersPendingList = document.getElementById('account-orders-pending-list');
+const accountOrdersCompletedList = document.getElementById('account-orders-completed-list');
 const accountProfileSummary = document.getElementById('account-profile-summary');
 const accountAddressSummary = document.getElementById('account-address-summary');
 const accountInvoiceSummary = document.getElementById('account-invoice-summary');
 const accountInstallmentsList = document.getElementById('account-installments-list');
 const accountCouponsList = document.getElementById('account-coupons-list');
 const accountFavoritesList = document.getElementById('account-favorites-list');
+const favoritesResultsSummary = document.getElementById('favorites-results-summary');
+const favoritesSearchInput = document.getElementById('favorites-search-input');
+const favoritesFilterChips = document.getElementById('favorites-filter-chips');
+const favoritesPagination = document.getElementById('favorites-pagination');
+const ordersSearchInput = document.getElementById('orders-search-input');
+const ordersDateFilter = document.getElementById('orders-date-filter');
+const ordersPendingPagination = document.getElementById('orders-pending-pagination');
 const personalEditButton = document.getElementById('personal-edit-button');
 const personalFormCard = document.getElementById('personal-form-card');
 const personalForm = document.getElementById('inline-personal-form');
@@ -38,24 +45,90 @@ const invoiceActionsRow = document.getElementById('invoice-actions-row');
 const addressActionsRow = document.getElementById('address-actions-row');
 const addressAddButton = document.getElementById('address-add-button');
 const addressFormCard = document.getElementById('address-form-card');
-const addressFormTitle = document.getElementById('address-form-title');
 const addressForm = document.getElementById('address-form');
 const addressCancelButton = document.getElementById('address-cancel-button');
 const invoiceAddButton = document.getElementById('invoice-add-button');
 const invoiceFormCard = document.getElementById('invoice-form-card');
-const invoiceFormTitle = document.getElementById('invoice-form-title');
 const invoiceForm = document.getElementById('invoice-form');
 const invoiceCancelButton = document.getElementById('invoice-cancel-button');
 const accountSideLinks = Array.from(document.querySelectorAll('.account-side-link[data-section]'));
 const accountSubLinks = Array.from(document.querySelectorAll('.account-sub-link[data-section]'));
 const profileMenuToggle = document.querySelector('[data-profile-toggle="true"]');
 const profileSubNav = document.getElementById('profile-sub-nav');
+const ordersMenuToggle = document.querySelector('[data-orders-toggle="true"]');
+const ordersSubNav = document.getElementById('orders-sub-nav');
 const accountSections = Array.from(document.querySelectorAll('.account-hub-main > section[id]'));
 const accountAvatar = document.querySelector('.account-avatar');
+const storeSite = window.StoreSite || null;
 
 const profileSectionIds = ['personal-data-card', 'invoice-data-card', 'addresses-data-card'];
+const orderSectionIds = ['pending-orders-card', 'completed-orders-card'];
 
 let currentUser = null;
+let productsCatalog = null;
+let activeProfileUserId = null;
+const MAX_ADDRESS_COUNT = 5;
+const MAX_INVOICE_COUNT = 5;
+const favoritesState = {
+  items: [],
+  query: '',
+  category: 'all',
+  page: 1,
+  pageSize: 4,
+};
+const ordersState = {
+  items: [],
+  pendingPage: 1,
+  pendingPageSize: 4,
+  completedQuery: '',
+  completedDateWindowDays: 'all',
+};
+
+function renderPendingOrdersPagination(totalItems) {
+  if (!ordersPendingPagination) {
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / ordersState.pendingPageSize));
+  ordersState.pendingPage = Math.min(ordersState.pendingPage, totalPages);
+  ordersPendingPagination.hidden = totalItems === 0 || totalPages === 1;
+
+  if (ordersPendingPagination.hidden) {
+    ordersPendingPagination.innerHTML = '';
+    return;
+  }
+
+  const buttons = [];
+  buttons.push(`
+    <button class="button button-secondary" type="button" data-pending-page-nav="prev" ${ordersState.pendingPage === 1 ? 'disabled' : ''}>Previous</button>
+  `);
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+    buttons.push(`
+      <button class="${pageNumber === ordersState.pendingPage ? 'button button-primary' : 'button button-secondary'}" type="button" data-pending-page-number="${pageNumber}">${pageNumber}</button>
+    `);
+  }
+
+  buttons.push(`
+    <button class="button button-secondary" type="button" data-pending-page-nav="next" ${ordersState.pendingPage === totalPages ? 'disabled' : ''}>Next</button>
+  `);
+
+  ordersPendingPagination.innerHTML = buttons.join('');
+
+  ordersPendingPagination.querySelectorAll('[data-pending-page-number]').forEach((button) => {
+    button.addEventListener('click', () => {
+      ordersState.pendingPage = Number(button.dataset.pendingPageNumber);
+      renderOrders(ordersState.items);
+    });
+  });
+
+  ordersPendingPagination.querySelectorAll('[data-pending-page-nav]').forEach((button) => {
+    button.addEventListener('click', () => {
+      ordersState.pendingPage += button.dataset.pendingPageNav === 'next' ? 1 : -1;
+      renderOrders(ordersState.items);
+    });
+  });
+}
 
 function syncProfileNavigation(sectionId) {
   const profileActive = profileSectionIds.includes(sectionId);
@@ -76,6 +149,19 @@ function syncProfileNavigation(sectionId) {
   });
 }
 
+function syncOrderNavigation(sectionId) {
+  const ordersActive = orderSectionIds.includes(sectionId);
+
+  if (ordersMenuToggle) {
+    ordersMenuToggle.classList.toggle('is-active', ordersActive);
+    ordersMenuToggle.setAttribute('aria-expanded', String(ordersActive));
+  }
+
+  if (ordersSubNav) {
+    ordersSubNav.hidden = !ordersActive;
+  }
+}
+
 function setActiveAccountSection(sectionId = 'personal-data-card') {
   accountSections.forEach((section) => {
     section.hidden = section.id !== sectionId;
@@ -88,6 +174,7 @@ function setActiveAccountSection(sectionId = 'personal-data-card') {
   });
 
   syncProfileNavigation(sectionId);
+  syncOrderNavigation(sectionId);
 
   if (window.location.hash !== `#${sectionId}`) {
     window.history.replaceState(null, '', `#${sectionId}`);
@@ -136,6 +223,10 @@ function getSessionToken() {
   return window.localStorage.getItem(SESSION_TOKEN_STORAGE_KEY);
 }
 
+function getActiveUserId() {
+  return window.localStorage.getItem(CURRENT_USER_STORAGE_KEY) || String(currentUser?.id || '').trim() || null;
+}
+
 function setSession(session) {
   window.localStorage.setItem(CURRENT_USER_STORAGE_KEY, String(session.user.id));
   window.localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, session.session.session_token);
@@ -159,32 +250,300 @@ async function fetchJson(path, options = {}) {
   return payload;
 }
 
-function renderOrders(orders = []) {
-  if (!accountOrdersList) {
-    return;
+function isCompletedOrder(order) {
+  const status = String(order?.status || '').toLowerCase();
+  return status === 'completed';
+}
+
+function isOrderWithinDateWindow(order, dateWindowDays) {
+  if (dateWindowDays === 'all') {
+    return true;
   }
 
-  accountOrdersList.innerHTML = '';
-  if (orders.length === 0) {
-    accountOrdersList.innerHTML = '<p class="account-empty">No orders yet</p>';
-    return;
+  const placedAt = Date.parse(order?.placed_at || '');
+  if (!placedAt) {
+    return false;
   }
 
-  orders.slice(0, 5).forEach((order) => {
-    const row = document.createElement('article');
-    row.className = 'order-line';
-    row.innerHTML = `
-      <div>
-        <strong>${order.order_number}</strong>
-        <small>${order.status} / ${order.payment_status}</small>
-      </div>
-      <div>
-        <span>${Number(order.total_amount || 0).toFixed(2)} ${order.currency_code || 'EUR'}</span>
-        <small>${order.placed_at || 'No date yet'}</small>
-      </div>
-    `;
-    accountOrdersList.appendChild(row);
+  const windowDays = Number(dateWindowDays);
+  if (!windowDays) {
+    return true;
+  }
+
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  return Date.now() - placedAt <= windowDays * millisecondsPerDay;
+}
+
+function getFilteredCompletedOrders(orders = []) {
+  const query = ordersState.completedQuery.trim().toLowerCase();
+
+  return orders.filter((order) => {
+    const haystack = [
+      order.order_number,
+      order.status,
+      order.payment_status,
+      order.fulfillment_status,
+      order.tracking_number,
+      order.carrier_name,
+      ...(Array.isArray(order.items) ? order.items.map((item) => item.product_name) : []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return (!query || haystack.includes(query)) && isOrderWithinDateWindow(order, ordersState.completedDateWindowDays);
   });
+}
+
+function toTitleCase(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/(^|\s)\S/g, (character) => character.toUpperCase());
+}
+
+function getOrderProgressCopy(order) {
+  const fulfillmentStatus = String(order?.fulfillment_status || '').trim();
+  const orderStatus = String(order?.status || '').trim();
+  const paymentStatus = String(order?.payment_status || '').trim();
+
+  if (fulfillmentStatus) {
+    const normalized = fulfillmentStatus.toLowerCase();
+
+    if (normalized.includes('deliver')) {
+      return {
+        badge: 'Delivered',
+        detail: 'Your order has been delivered.',
+      };
+    }
+
+    if (normalized.includes('ship') || normalized.includes('transit')) {
+      return {
+        badge: 'On the way',
+        detail: 'Your order is on the way.',
+      };
+    }
+
+    if (normalized.includes('pack') || normalized.includes('ready')) {
+      return {
+        badge: 'Preparing',
+        detail: 'Your order is being prepared for shipment.',
+      };
+    }
+
+    return {
+      badge: toTitleCase(fulfillmentStatus),
+      detail: `Current status: ${toTitleCase(fulfillmentStatus)}.`,
+    };
+  }
+
+  if (orderStatus && orderStatus.toLowerCase() === 'completed') {
+    return {
+      badge: 'Completed',
+      detail: 'This order has been completed.',
+    };
+  }
+
+  if (paymentStatus && paymentStatus.toLowerCase().includes('paid')) {
+    return {
+      badge: 'Confirmed',
+      detail: 'Payment received. We are preparing your order.',
+    };
+  }
+
+  return {
+    badge: 'Pending',
+    detail: 'We received your order and are waiting for the next update.',
+  };
+}
+
+function getOrderStatusVisual(order) {
+  const progress = getOrderProgressCopy(order);
+  const normalizedStatus = `${order?.fulfillment_status || ''} ${order?.status || ''}`.toLowerCase();
+  const isInTransit = normalizedStatus.includes('ship') || normalizedStatus.includes('transit') || normalizedStatus.includes('deliver');
+
+  return {
+    ...progress,
+    iconSrc: isInTransit ? 'Photos/delivery-truck.png' : 'Photos/box.png',
+  };
+}
+
+function getPrimaryShipment(order) {
+  if (Array.isArray(order?.shipments) && order.shipments.length > 0) {
+    return order.shipments[0];
+  }
+
+  if (order?.carrier_name || order?.tracking_number || order?.shipment_status) {
+    return {
+      carrier_name: order.carrier_name,
+      tracking_number: order.tracking_number,
+      status: order.shipment_status,
+      shipped_at: order.shipped_at,
+      delivered_at: order.delivered_at,
+    };
+  }
+
+  return null;
+}
+
+function formatOrderAddress(address) {
+  if (!address) {
+    return 'No shipping address saved yet';
+  }
+
+  const cityLine = [address.postal_code, address.city].filter(Boolean).join(' ');
+  return [address.recipient_name, address.line_1, address.line_2, cityLine, address.region, address.country_code].filter(Boolean).join(', ');
+}
+
+function renderOrderProducts(order) {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (items.length === 0) {
+    return '<p class="order-detail-copy">No products available yet.</p>';
+  }
+
+  return `
+    <ul class="order-product-list">
+      ${items
+        .map(
+          (item) => `
+            <li class="order-product-row">
+              <div>
+                <strong>${escapeHtml(item.product_name || item.sku || 'Product')}</strong>
+                <small>${escapeHtml(item.sku || 'No SKU')} / Qty ${Number(item.quantity || 0)}</small>
+              </div>
+              <span>${escapeHtml(formatCurrency(item.line_total || item.unit_price || 0, order.currency_code || 'EUR'))}</span>
+            </li>
+          `,
+        )
+        .join('')}
+    </ul>
+  `;
+}
+
+function getOrderItemNames(order) {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (items.length === 0) {
+    return 'No products available yet';
+  }
+
+  const visibleNames = items.slice(0, 3).map((item) => item.product_name || item.sku || 'Product');
+  const remainingCount = items.length - visibleNames.length;
+  return remainingCount > 0 ? `${visibleNames.join(', ')} and ${remainingCount} more` : visibleNames.join(', ');
+}
+
+function renderOrderSummaryCard(order) {
+  const visual = getOrderStatusVisual(order);
+  const shippingAddress = order?.shipping_address || order?.billing_address || null;
+  const paymentLabel = [order?.payment_provider, toTitleCase(order?.payment_status || '')].filter(Boolean).join(' / ');
+  const orderUrl = `order.html?orderId=${encodeURIComponent(order.order_id || order.id || '')}`;
+
+  return `
+    <article class="order-summary-card" data-order-url="${escapeHtml(orderUrl)}" tabindex="0" role="link" aria-label="Open order ${escapeHtml(
+      order.order_number || 'details',
+    )}">
+      <div class="order-summary-head">
+        <div class="order-summary-copy">
+          <p class="eyebrow">Order</p>
+          <strong>${escapeHtml(order.order_number || 'Order')}</strong>
+          <small>${escapeHtml(order.placed_at || 'No date yet')}</small>
+        </div>
+        <div class="order-summary-status">
+          <img class="order-status-icon" src="${escapeHtml(visual.iconSrc)}" alt="" />
+          <div>
+            <span class="record-pill">${escapeHtml(visual.badge)}</span>
+            <small>${escapeHtml(paymentLabel || visual.detail)}</small>
+          </div>
+        </div>
+      </div>
+      <div class="order-summary-grid">
+        <div class="order-summary-section">
+          <span>Products</span>
+          <strong>${escapeHtml(getOrderItemNames(order))}</strong>
+        </div>
+        <div class="order-summary-section">
+          <span>Address</span>
+          <strong>${escapeHtml(formatOrderAddress(shippingAddress))}</strong>
+        </div>
+        <div class="order-summary-section">
+          <span>Contact</span>
+          <strong>${escapeHtml(order?.customer_phone || 'No phone saved')}</strong>
+        </div>
+      </div>
+      <div class="order-summary-footer">
+        <div class="order-summary-total">
+          <span>Total cost</span>
+          <strong>${escapeHtml(formatCurrency(order.total_amount || 0, order.currency_code || 'EUR'))}</strong>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function bindOrderSummaryLinks(container) {
+  if (!container) {
+    return;
+  }
+
+  container.querySelectorAll('[data-order-url]').forEach((card) => {
+    const openOrder = () => {
+      if (card.dataset.orderUrl) {
+        window.location.href = card.dataset.orderUrl;
+      }
+    };
+
+    card.addEventListener('click', openOrder);
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openOrder();
+      }
+    });
+  });
+}
+
+function renderOrders(orders = []) {
+  if (!accountOrdersPendingList || !accountOrdersCompletedList) {
+    return;
+  }
+
+  ordersState.items = Array.isArray(orders) ? orders.slice() : [];
+
+  const pendingOrders = ordersState.items.filter((order) => !isCompletedOrder(order));
+  const completedOrders = getFilteredCompletedOrders(ordersState.items.filter((order) => isCompletedOrder(order)));
+  const totalPendingPages = Math.max(1, Math.ceil(pendingOrders.length / ordersState.pendingPageSize));
+  ordersState.pendingPage = Math.min(ordersState.pendingPage, totalPendingPages);
+  const pendingStartIndex = (ordersState.pendingPage - 1) * ordersState.pendingPageSize;
+  const visiblePendingOrders = pendingOrders.slice(pendingStartIndex, pendingStartIndex + ordersState.pendingPageSize);
+
+  accountOrdersPendingList.innerHTML = '';
+  accountOrdersCompletedList.innerHTML = '';
+
+  if (orders.length === 0) {
+    accountOrdersPendingList.innerHTML = '<p class="account-empty">No pending orders</p>';
+    accountOrdersCompletedList.innerHTML = '<p class="account-empty">No completed orders</p>';
+    renderPendingOrdersPagination(0);
+    return;
+  }
+
+  if (pendingOrders.length === 0) {
+    accountOrdersPendingList.innerHTML = '<p class="account-empty">No pending orders</p>';
+    renderPendingOrdersPagination(0);
+  }
+
+  accountOrdersPendingList.innerHTML = visiblePendingOrders.map((order) => renderOrderSummaryCard(order)).join('');
+  bindOrderSummaryLinks(accountOrdersPendingList);
+
+  renderPendingOrdersPagination(pendingOrders.length);
+
+  if (completedOrders.length === 0) {
+    accountOrdersCompletedList.innerHTML = '<p class="account-empty">No completed orders match the current filters</p>';
+    return;
+  }
+
+  accountOrdersCompletedList.innerHTML = completedOrders.map((order) => renderOrderSummaryCard(order)).join('');
+  bindOrderSummaryLinks(accountOrdersCompletedList);
 }
 
 function renderInstallmentPurchases(orders = []) {
@@ -206,18 +565,24 @@ function renderInstallmentPurchases(orders = []) {
   accountInstallmentsList.innerHTML = installmentOrders
     .slice(0, 5)
     .map(
-      (order) => `
+      (order) => {
+        const progress = getOrderProgressCopy(order);
+        return `
         <article class="order-line">
           <div>
             <strong>${escapeHtml(order.order_number)}</strong>
-            <small>${escapeHtml(order.status || 'Pending')} / ${escapeHtml(order.payment_status || 'Installment plan')}</small>
+            <div class="record-pills">
+              <span class="record-pill">${escapeHtml(progress.badge)}</span>
+            </div>
+            <small>${escapeHtml(progress.detail)}</small>
           </div>
           <div>
             <span>${Number(order.total_amount || 0).toFixed(2)} ${escapeHtml(order.currency_code || 'EUR')}</span>
             <small>${escapeHtml(order.placed_at || 'No date yet')}</small>
           </div>
         </article>
-      `,
+      `;
+      },
     )
     .join('');
 }
@@ -237,19 +602,226 @@ function renderCoupons() {
   `;
 }
 
-function renderFavorites() {
+function formatCurrency(value, currencyCode = 'EUR') {
+  return new Intl.NumberFormat('el-GR', {
+    style: 'currency',
+    currency: currencyCode,
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+}
+
+function truncateText(text, maxLength = 120) {
+  if (!text) {
+    return '';
+  }
+
+  const normalizedText = String(text).trim();
+  if (normalizedText.length <= maxLength) {
+    return normalizedText;
+  }
+
+  return `${normalizedText.slice(0, maxLength).trimEnd()}...`;
+}
+
+function syncInvoiceActions(invoiceProfiles = currentUser?.invoice_profiles || []) {
+  if (!invoiceActionsRow) {
+    return;
+  }
+
+  invoiceActionsRow.hidden = (Array.isArray(invoiceProfiles) ? invoiceProfiles.length : 0) >= MAX_INVOICE_COUNT;
+}
+
+function syncAddressActions(addresses = currentUser?.addresses || []) {
+  if (!addressActionsRow) {
+    return;
+  }
+
+  addressActionsRow.hidden = (Array.isArray(addresses) ? addresses.length : 0) >= MAX_ADDRESS_COUNT;
+}
+
+function getFavoriteCategories(products = []) {
+  return [...new Set(products.map((product) => String(product.category_name || '').trim()).filter(Boolean))].sort((left, right) =>
+    left.localeCompare(right),
+  );
+}
+
+function getFilteredFavoriteProducts() {
+  const query = favoritesState.query.trim().toLowerCase();
+
+  return favoritesState.items.filter((product) => {
+    const matchesCategory = favoritesState.category === 'all' || (product.category_name || '') === favoritesState.category;
+    const haystack = [product.product_name, product.brand, product.category_name, product.description]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const matchesQuery = !query || haystack.includes(query);
+    return matchesCategory && matchesQuery;
+  });
+}
+
+function renderFavoriteFilters(products = []) {
+  if (!favoritesFilterChips) {
+    return;
+  }
+
+  const filters = [{ label: 'All', value: 'all' }, ...getFavoriteCategories(products).map((category) => ({ label: category, value: category }))];
+
+  favoritesFilterChips.innerHTML = '';
+  filters.forEach((filter) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'filter-chip';
+    button.textContent = filter.label;
+    button.classList.toggle('is-active', favoritesState.category === filter.value);
+    button.addEventListener('click', () => {
+      favoritesState.category = filter.value;
+      favoritesState.page = 1;
+      renderFavorites(favoritesState.items);
+    });
+    favoritesFilterChips.appendChild(button);
+  });
+}
+
+function renderFavoritePagination(totalItems) {
+  if (!favoritesPagination) {
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / favoritesState.pageSize));
+  favoritesState.page = Math.min(favoritesState.page, totalPages);
+  favoritesPagination.hidden = totalItems === 0 || totalPages === 1;
+
+  if (favoritesPagination.hidden) {
+    favoritesPagination.innerHTML = '';
+    return;
+  }
+
+  const buttons = [];
+  buttons.push(`
+    <button class="button button-secondary" type="button" data-page-nav="prev" ${favoritesState.page === 1 ? 'disabled' : ''}>Previous</button>
+  `);
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+    buttons.push(`
+      <button class="${pageNumber === favoritesState.page ? 'button button-primary' : 'button button-secondary'}" type="button" data-page-number="${pageNumber}">${pageNumber}</button>
+    `);
+  }
+
+  buttons.push(`
+    <button class="button button-secondary" type="button" data-page-nav="next" ${favoritesState.page === totalPages ? 'disabled' : ''}>Next</button>
+  `);
+
+  favoritesPagination.innerHTML = buttons.join('');
+
+  favoritesPagination.querySelectorAll('[data-page-number]').forEach((button) => {
+    button.addEventListener('click', () => {
+      favoritesState.page = Number(button.dataset.pageNumber);
+      renderFavorites(favoritesState.items);
+    });
+  });
+
+  favoritesPagination.querySelectorAll('[data-page-nav]').forEach((button) => {
+    button.addEventListener('click', () => {
+      favoritesState.page += button.dataset.pageNav === 'next' ? 1 : -1;
+      renderFavorites(favoritesState.items);
+    });
+  });
+}
+
+function renderFavorites(favoriteProducts = []) {
   if (!accountFavoritesList) {
     return;
   }
 
-  accountFavoritesList.innerHTML = `
-    <article class="summary-record-card">
-      <div class="summary-record-head">
-        <strong>Favorites live in the favorites page</strong>
-      </div>
-      <p>Use the favorites page to review the products you have saved.</p>
-    </article>
-  `;
+  favoritesState.items = favoriteProducts.slice();
+  renderFavoriteFilters(favoriteProducts);
+
+  const filteredProducts = getFilteredFavoriteProducts();
+  const totalProducts = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalProducts / favoritesState.pageSize));
+  favoritesState.page = Math.min(favoritesState.page, totalPages);
+  const startIndex = (favoritesState.page - 1) * favoritesState.pageSize;
+  const visibleProducts = filteredProducts.slice(startIndex, startIndex + favoritesState.pageSize);
+
+  if (favoritesResultsSummary) {
+    favoritesResultsSummary.textContent = `${totalProducts} product${totalProducts === 1 ? '' : 's'}`;
+  }
+
+  if (favoriteProducts.length === 0) {
+    accountFavoritesList.innerHTML = '<p class="account-empty">No favorite products saved yet</p>';
+    renderFavoritePagination(0);
+    return;
+  }
+
+  if (filteredProducts.length === 0) {
+    accountFavoritesList.innerHTML = '<p class="account-empty">No favorite products match the current search or filter</p>';
+    renderFavoritePagination(0);
+    return;
+  }
+
+  accountFavoritesList.innerHTML = visibleProducts
+    .map(
+      (product) => `
+        <article class="summary-record-card profile-inline-record-card favorite-summary-card">
+          <div class="summary-record-head">
+            <div>
+              <strong>${escapeHtml(product.product_name)}</strong>
+              <p class="form-helper">${escapeHtml(product.category_name || 'Uncategorized')} / ${escapeHtml(product.brand || 'Bluehaven Select')}</p>
+            </div>
+            <div class="account-section-actions">
+              <span class="summary-pill">${escapeHtml(formatCurrency(product.cost, product.currency_code))}</span>
+              <button class="button button-secondary" type="button" data-remove-favorite="${escapeHtml(product.product_id ?? product.id)}">Remove</button>
+            </div>
+          </div>
+          <div class="record-card-copy">
+            <p>${escapeHtml(truncateText(product.description || ''))}</p>
+          </div>
+        </article>
+      `,
+    )
+    .join('');
+
+  renderFavoritePagination(totalProducts);
+
+  accountFavoritesList.querySelectorAll('[data-remove-favorite]').forEach((button) => {
+    button.addEventListener('click', () => {
+      storeSite?.toggleFavoriteProduct?.(Number(button.dataset.removeFavorite));
+    });
+  });
+}
+
+async function getProductsCatalog() {
+  if (Array.isArray(productsCatalog)) {
+    return productsCatalog;
+  }
+
+  const response = await fetchJson('/api/products');
+  productsCatalog = Array.isArray(response.items) ? response.items : [];
+  return productsCatalog;
+}
+
+async function refreshFavorites() {
+  if (!accountFavoritesList) {
+    return;
+  }
+
+  const favoriteIds = storeSite?.getFavoriteProductIds?.() || [];
+  if (favoriteIds.length === 0) {
+    favoritesState.page = 1;
+    renderFavorites([]);
+    return;
+  }
+
+  accountFavoritesList.innerHTML = '<p class="account-empty">Loading favorite products</p>';
+
+  try {
+    const products = await getProductsCatalog();
+    const productsById = new Map(products.map((product) => [Number(product.product_id ?? product.id), product]));
+    const favoriteProducts = favoriteIds.map((id) => productsById.get(id)).filter(Boolean);
+    renderFavorites(favoriteProducts);
+  } catch {
+    accountFavoritesList.innerHTML = '<p class="account-empty">Unable to load favorite products right now</p>';
+  }
 }
 
 function escapeHtml(value) {
@@ -297,6 +869,8 @@ function renderAddressSummary(addresses = []) {
     return;
   }
 
+  syncAddressActions(addresses);
+
   if (addresses.length === 0) {
     accountAddressSummary.innerHTML = '<p class="account-empty">No saved addresses</p>';
     return;
@@ -313,7 +887,7 @@ function renderAddressSummary(addresses = []) {
       }
 
       return `
-        <article class="summary-record-card profile-inline-record-card">
+        <article class="summary-record-card profile-inline-record-card address-summary-card">
           <div class="summary-record-head">
             <div>
               <strong>${escapeHtml(normalizeAddressLabel(address.label, address.recipient_name))}</strong>
@@ -324,8 +898,33 @@ function renderAddressSummary(addresses = []) {
               <button class="button button-danger" type="button" data-delete-address="${escapeHtml(address.id)}">Remove</button>
             </div>
           </div>
-          <div class="record-card-copy">
-            <p>${escapeHtml([address.line_1, address.city, address.postal_code, address.region].filter(Boolean).join(', '))}</p>
+          <div class="address-summary-list">
+            <div class="summary-row">
+              <span>Address line 1</span>
+              <strong>${escapeHtml(address.line_1 || 'Not set')}</strong>
+            </div>
+            ${address.line_2 ? `
+              <div class="summary-row">
+                <span>Address line 2</span>
+                <strong>${escapeHtml(address.line_2)}</strong>
+              </div>
+            ` : ''}
+            <div class="summary-row">
+              <span>City</span>
+              <strong>${escapeHtml(address.city || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Postal code</span>
+              <strong>${escapeHtml(address.postal_code || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Region</span>
+              <strong>${escapeHtml(address.region || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Country code</span>
+              <strong>${escapeHtml(address.country_code || 'Not set')}</strong>
+            </div>
           </div>
         </article>
       `;
@@ -341,45 +940,79 @@ function renderAddressSummary(addresses = []) {
   });
 }
 
-function renderInvoiceSummary(invoiceProfile) {
+function renderInvoiceSummary(invoiceProfiles = []) {
   if (!accountInvoiceSummary) {
     return;
   }
 
-  if (!invoiceProfile) {
-    accountInvoiceSummary.innerHTML = '<p class="account-empty">No invoice profile saved</p>';
+  const items = (Array.isArray(invoiceProfiles) ? invoiceProfiles : []).slice().sort((left, right) => {
+    const leftCreatedAt = Date.parse(left?.created_at || '') || 0;
+    const rightCreatedAt = Date.parse(right?.created_at || '') || 0;
+
+    if (leftCreatedAt !== rightCreatedAt) {
+      return leftCreatedAt - rightCreatedAt;
+    }
+
+    return Number(left?.id || 0) - Number(right?.id || 0);
+  });
+
+  if (items.length === 0) {
+    accountInvoiceSummary.innerHTML = '<p class="account-empty">No invoice profiles saved</p>';
+    syncInvoiceActions([]);
     return;
   }
 
-  accountInvoiceSummary.innerHTML = `
-    <article class="summary-record-card profile-inline-record-card">
-      <div class="summary-record-head">
-        <div>
-          <strong>${escapeHtml(invoiceProfile.company_name || 'Invoice profile')}</strong>
-          <p class="form-helper">VAT number: ${escapeHtml(invoiceProfile.tax_id || 'Not set')}</p>
-        </div>
-        <div class="account-section-actions">
-          <button class="button button-secondary" id="invoice-edit-button" type="button">Edit</button>
-          <button class="button button-danger" id="invoice-delete-summary-button" type="button">Remove</button>
-        </div>
-      </div>
-      <div class="record-card-copy">
-        <p>${escapeHtml([invoiceProfile.tax_office, invoiceProfile.profession].filter(Boolean).join(' / ') || 'No tax office or profession saved')}</p>
-        <p>${escapeHtml([invoiceProfile.line_1, invoiceProfile.city, invoiceProfile.postal_code, invoiceProfile.region].filter(Boolean).join(', ') || 'No invoice address saved')}</p>
-        <p>${escapeHtml(invoiceProfile.phone || 'No invoice phone saved')}</p>
-      </div>
-    </article>
-  `;
+  accountInvoiceSummary.innerHTML = items
+    .map(
+      (invoiceProfile) => `
+        <article class="summary-record-card profile-inline-record-card invoice-summary-card">
+          <div class="summary-record-head">
+            <div>
+              <strong>${escapeHtml(invoiceProfile.company_name || 'Invoice profile')}</strong>
+            </div>
+            <div class="account-section-actions">
+              <button class="button button-secondary" type="button" data-edit-invoice="${escapeHtml(invoiceProfile.id)}">Edit</button>
+              <button class="button button-danger" type="button" data-delete-invoice="${escapeHtml(invoiceProfile.id)}">Remove</button>
+            </div>
+          </div>
+          <div class="invoice-summary-list">
+            <div class="summary-row">
+              <span>VAT number</span>
+              <strong>${escapeHtml(invoiceProfile.tax_id || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Tax office</span>
+              <strong>${escapeHtml(invoiceProfile.tax_office || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Profession</span>
+              <strong>${escapeHtml(invoiceProfile.profession || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Phone</span>
+              <strong>${escapeHtml(invoiceProfile.phone || 'Not set')}</strong>
+            </div>
+            <div class="summary-row">
+              <span>Billing address</span>
+              <strong>${escapeHtml(
+                [invoiceProfile.line_1, invoiceProfile.city, invoiceProfile.postal_code, invoiceProfile.region].filter(Boolean).join(', ') || 'Not set',
+              )}</strong>
+            </div>
+          </div>
+        </article>
+      `,
+    )
+    .join('');
 
-  const editButton = document.getElementById('invoice-edit-button');
-  if (editButton) {
-    editButton.addEventListener('click', openInvoiceEditor);
-  }
+  accountInvoiceSummary.querySelectorAll('[data-edit-invoice]').forEach((button) => {
+    button.addEventListener('click', () => openInvoiceEditor(Number(button.dataset.editInvoice)));
+  });
 
-  const deleteButton = document.getElementById('invoice-delete-summary-button');
-  if (deleteButton) {
-    deleteButton.addEventListener('click', handleDeleteInvoiceSummary);
-  }
+  accountInvoiceSummary.querySelectorAll('[data-delete-invoice]').forEach((button) => {
+    button.addEventListener('click', () => handleDeleteInvoiceSummary(Number(button.dataset.deleteInvoice)));
+  });
+
+  syncInvoiceActions(items);
 }
 
 function clearAccountMessage() {
@@ -437,18 +1070,12 @@ function openAddressEditor(addressId = null) {
   addressForm.reset();
   addressForm.elements.address_id.value = address ? String(address.id) : '';
   addressForm.elements.label.value = address?.label || '';
-  addressForm.elements.recipient_name.value = address?.recipient_name || `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`.trim();
   addressForm.elements.line_1.value = address?.line_1 || '';
   addressForm.elements.line_2.value = address?.line_2 || '';
   addressForm.elements.city.value = address?.city || '';
   addressForm.elements.postal_code.value = address?.postal_code || '';
   addressForm.elements.region.value = address?.region || '';
   addressForm.elements.country_code.value = address?.country_code || 'GR';
-  addressForm.elements.is_default_shipping.checked = Number(address?.is_default_shipping || 0) === 1;
-  addressForm.elements.is_default_billing.checked = Number(address?.is_default_billing || 0) === 1;
-  if (addressFormTitle) {
-    addressFormTitle.textContent = address ? 'Edit address' : 'Add address';
-  }
   if (accountAddressSummary) {
     accountAddressSummary.hidden = true;
   }
@@ -468,19 +1095,17 @@ function closeAddressEditor() {
   if (accountAddressSummary) {
     accountAddressSummary.hidden = false;
   }
-  if (addressActionsRow) {
-    addressActionsRow.hidden = false;
-  }
+  syncAddressActions();
 }
 
-function openInvoiceEditor() {
+function openInvoiceForm(invoice = null) {
   if (!invoiceFormCard || !invoiceForm) {
     return;
   }
 
-  const invoice = currentUser?.invoice_profile || null;
   clearAccountMessage();
   invoiceForm.reset();
+  invoiceForm.elements.invoice_id.value = invoice?.id ? String(invoice.id) : '';
   invoiceForm.elements.company_name.value = invoice?.company_name || '';
   invoiceForm.elements.tax_id.value = invoice?.tax_id || '';
   invoiceForm.elements.tax_office.value = invoice?.tax_office || '';
@@ -490,9 +1115,6 @@ function openInvoiceEditor() {
   invoiceForm.elements.postal_code.value = invoice?.postal_code || '';
   invoiceForm.elements.region.value = invoice?.region || '';
   invoiceForm.elements.phone.value = invoice?.phone || currentUser?.phone || '';
-  if (invoiceFormTitle) {
-    invoiceFormTitle.textContent = invoice ? 'Edit invoice profile' : 'Add invoice profile';
-  }
   if (accountInvoiceSummary) {
     accountInvoiceSummary.hidden = true;
   }
@@ -500,6 +1122,15 @@ function openInvoiceEditor() {
     invoiceActionsRow.hidden = true;
   }
   invoiceFormCard.hidden = false;
+}
+
+function openInvoiceEditor(invoiceId) {
+  const invoice = currentUser?.invoice_profiles?.find((item) => Number(item.id) === Number(invoiceId)) || null;
+  openInvoiceForm(invoice);
+}
+
+function openInvoiceCreator() {
+  openInvoiceForm(null);
 }
 
 function closeInvoiceEditor() {
@@ -512,9 +1143,7 @@ function closeInvoiceEditor() {
   if (accountInvoiceSummary) {
     accountInvoiceSummary.hidden = false;
   }
-  if (invoiceActionsRow) {
-    invoiceActionsRow.hidden = false;
-  }
+  syncInvoiceActions();
 }
 
 function formDataToProfilePayload(formData) {
@@ -538,7 +1167,7 @@ function populateAccountDetailsForm(userPayload) {
   }
 
   const address = userPayload.primary_address || {};
-  const invoiceProfile = userPayload.invoice_profile || {};
+  const invoiceProfile = userPayload.invoice_profiles?.[0] || userPayload.invoice_profile || {};
   accountDetailsForm.elements.phone.value = userPayload.phone || '';
   accountDetailsForm.elements.line_1.value = address.line_1 || invoiceProfile.line_1 || '';
   accountDetailsForm.elements.postal_code.value = address.postal_code || invoiceProfile.postal_code || '';
@@ -576,13 +1205,10 @@ function applyUserDetails(userPayload) {
   }
 
   const orders = Array.isArray(userPayload.orders) ? userPayload.orders : [];
-  if (accountOrderCount) {
-    accountOrderCount.textContent = `${orders.length} order${orders.length === 1 ? '' : 's'}`;
-  }
   renderOrders(orders);
   renderInstallmentPurchases(orders);
   renderCoupons();
-  renderFavorites();
+  void refreshFavorites();
   renderSummaryRows(
     accountProfileSummary,
     [
@@ -595,7 +1221,7 @@ function applyUserDetails(userPayload) {
     'No profile details available yet',
   );
   renderAddressSummary(Array.isArray(userPayload.addresses) ? userPayload.addresses : []);
-  renderInvoiceSummary(userPayload.invoice_profile);
+  renderInvoiceSummary(Array.isArray(userPayload.invoice_profiles) ? userPayload.invoice_profiles : []);
   if (personalForm && !personalFormCard?.hidden) {
     openPersonalEditor();
   }
@@ -621,7 +1247,7 @@ function formDataToPersonalPayload(formData) {
 }
 
 async function handleDeleteAddress(addressId) {
-  const userId = currentUser?.id || window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+  const userId = getActiveUserId();
   if (!userId || !addressId || !window.confirm('Delete this address?')) {
     return;
   }
@@ -638,14 +1264,14 @@ async function handleDeleteAddress(addressId) {
   }
 }
 
-async function handleDeleteInvoiceSummary() {
-  const userId = currentUser?.id || window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
-  if (!userId || !currentUser?.invoice_profile || !window.confirm('Delete the invoice profile?')) {
+async function handleDeleteInvoiceSummary(invoiceId) {
+  const userId = getActiveUserId();
+  if (!userId || !invoiceId || !window.confirm('Delete the invoice profile?')) {
     return;
   }
 
   try {
-    await fetchJson(`/api/users/${encodeURIComponent(userId)}/invoice-profile`, {
+    await fetchJson(`/api/users/${encodeURIComponent(userId)}/invoice-profiles/${encodeURIComponent(invoiceId)}`, {
       method: 'DELETE',
     });
     const updatedUser = await fetchJson(`/api/users/${encodeURIComponent(userId)}`);
@@ -657,6 +1283,8 @@ async function handleDeleteInvoiceSummary() {
 }
 
 function renderLoggedOut() {
+  currentUser = null;
+  activeProfileUserId = null;
   setAuthMode('login');
   if (window.location.hash) {
     window.history.replaceState(null, '', window.location.pathname);
@@ -674,6 +1302,7 @@ function renderLoggedOut() {
 
 function renderLoggedIn(sessionPayload) {
   const { user } = sessionPayload;
+  activeProfileUserId = String(user.id);
   if (authIntroPanel) {
     authIntroPanel.hidden = true;
   }
@@ -699,16 +1328,16 @@ function renderLoggedIn(sessionPayload) {
 
   fetchJson(`/api/users/${encodeURIComponent(user.id)}`)
     .then((userPayload) => {
+      if (activeProfileUserId !== String(user.id) || getActiveUserId() !== String(user.id)) {
+        return;
+      }
       applyUserDetails(userPayload);
     })
     .catch(() => {
-      if (accountOrderCount) {
-        accountOrderCount.textContent = '0 orders';
-      }
       renderOrders([]);
       renderInstallmentPurchases([]);
       renderCoupons();
-      renderFavorites();
+      renderFavorites([]);
     });
 }
 
@@ -783,7 +1412,7 @@ async function handleRegister(event) {
 
 async function handleAccountDetailsSave(event) {
   event.preventDefault();
-  const userId = currentUser?.id || window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+  const userId = getActiveUserId();
   if (!userId) {
     setMessage('Please log in first', 'error');
     return;
@@ -805,8 +1434,9 @@ async function handleAccountDetailsSave(event) {
 
 async function handleAccountPersonalSave(event) {
   event.preventDefault();
-  const userId = currentUser?.id || window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+  const userId = getActiveUserId();
   if (!userId) {
+    setMessage('Please log in first', 'error');
     return;
   }
 
@@ -819,14 +1449,15 @@ async function handleAccountPersonalSave(event) {
     });
     applyUserDetails(updatedUser);
     closePersonalEditor();
+    setMessage('Personal data saved');
   } catch (error) {
-    console.error(error);
+    setMessage(error.message, 'error');
   }
 }
 
 async function handleAddressSave(event) {
   event.preventDefault();
-  const userId = currentUser?.id || window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+  const userId = getActiveUserId();
   if (!userId) {
     return;
   }
@@ -835,15 +1466,12 @@ async function handleAddressSave(event) {
   const addressId = String(formData.get('address_id') || '').trim();
   const payload = {
     label: String(formData.get('label') || '').trim(),
-    recipient_name: String(formData.get('recipient_name') || '').trim(),
     line_1: String(formData.get('line_1') || '').trim(),
     line_2: String(formData.get('line_2') || '').trim(),
     city: String(formData.get('city') || '').trim(),
     postal_code: String(formData.get('postal_code') || '').trim(),
     region: String(formData.get('region') || '').trim(),
     country_code: String(formData.get('country_code') || 'GR').trim(),
-    is_default_shipping: formData.get('is_default_shipping') === '1',
-    is_default_billing: formData.get('is_default_billing') === '1',
   };
 
   try {
@@ -867,15 +1495,20 @@ async function handleAddressSave(event) {
 
 async function handleInvoiceSave(event) {
   event.preventDefault();
-  const userId = currentUser?.id || window.localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+  const userId = getActiveUserId();
   if (!userId) {
     return;
   }
 
   const formData = new FormData(event.currentTarget);
+  const invoiceId = String(formData.get('invoice_id') || '').trim();
   try {
-    await fetchJson(`/api/users/${encodeURIComponent(userId)}/invoice-profile`, {
-      method: 'POST',
+    await fetchJson(
+      invoiceId
+        ? `/api/users/${encodeURIComponent(userId)}/invoice-profiles/${encodeURIComponent(invoiceId)}`
+        : `/api/users/${encodeURIComponent(userId)}/invoice-profiles`,
+      {
+        method: invoiceId ? 'PATCH' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         invoice_requested: true,
@@ -889,7 +1522,8 @@ async function handleInvoiceSave(event) {
         region: String(formData.get('region') || '').trim(),
         phone: String(formData.get('phone') || '').trim(),
       }),
-    });
+      },
+    );
     const updatedUser = await fetchJson(`/api/users/${encodeURIComponent(userId)}`);
     closeInvoiceEditor();
     applyUserDetails(updatedUser);
@@ -965,7 +1599,7 @@ if (addressCancelButton) {
 }
 
 if (invoiceAddButton) {
-  invoiceAddButton.addEventListener('click', openInvoiceEditor);
+  invoiceAddButton.addEventListener('click', openInvoiceCreator);
 }
 
 if (invoiceCancelButton) {
@@ -992,6 +1626,12 @@ if (profileMenuToggle) {
   });
 }
 
+if (ordersMenuToggle) {
+  ordersMenuToggle.addEventListener('click', () => {
+    setActiveAccountSection('pending-orders-card');
+  });
+}
+
 window.addEventListener('hashchange', () => {
   if (!accountPanel || accountPanel.hidden) {
     return;
@@ -1014,5 +1654,35 @@ if (addressForm) {
 if (invoiceForm) {
   invoiceForm.addEventListener('submit', handleInvoiceSave);
 }
+
+if (favoritesSearchInput) {
+  favoritesSearchInput.addEventListener('input', (event) => {
+    favoritesState.query = event.currentTarget.value;
+    favoritesState.page = 1;
+    renderFavorites(favoritesState.items);
+  });
+}
+
+if (ordersSearchInput) {
+  ordersSearchInput.addEventListener('input', (event) => {
+    ordersState.completedQuery = event.currentTarget.value;
+    renderOrders(ordersState.items);
+  });
+}
+
+if (ordersDateFilter) {
+  ordersDateFilter.addEventListener('change', (event) => {
+    ordersState.completedDateWindowDays = event.currentTarget.value;
+    renderOrders(ordersState.items);
+  });
+}
+
+window.addEventListener('store:favorites-changed', () => {
+  if (!accountPanel || accountPanel.hidden) {
+    return;
+  }
+
+  void refreshFavorites();
+});
 
 restoreSession();

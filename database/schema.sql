@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS user_addresses (
 
 CREATE TABLE IF NOT EXISTS invoice_profiles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL UNIQUE,
+    user_id INTEGER NOT NULL,
     company_name TEXT NOT NULL,
     tax_id TEXT NOT NULL,
     tax_office TEXT,

@@ -14,6 +14,7 @@ from store_database import ROOT_DIR, StoreDatabase
 
 HOST = '127.0.0.1'
 PORT = 8000
+MAX_INVOICE_PROFILES = 5
 STATIC_EXTENSIONS = {'.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.avif'}
 db = StoreDatabase()
 db.initialize()
@@ -211,19 +212,19 @@ def upsert_primary_address(connection, user_id, body, fallback_recipient=None):
         )
 
 
-def upsert_invoice_profile(connection, user_id, body):
+def get_user_recipient_name(user_id):
+    user = db.fetch_one('SELECT first_name, last_name FROM users WHERE id = ?', (user_id,))
+    if user is None:
+        return 'Customer'
+
+    full_name = ' '.join(part.strip() for part in (user['first_name'] or '', user['last_name'] or '') if str(part).strip())
+    return full_name or 'Customer'
+
+
+def save_invoice_profile(connection, user_id, body, invoice_profile_id=None):
     invoice_requested = to_bool(body.get('invoice_requested'))
-    existing = connection.execute(
-        'SELECT id FROM invoice_profiles WHERE user_id = ?',
-        (user_id,),
-    ).fetchone()
 
     if not invoice_requested and not has_invoice_payload(body):
-        return
-
-    if not invoice_requested:
-        if existing is not None:
-            connection.execute('DELETE FROM invoice_profiles WHERE user_id = ?', (user_id,))
         return
 
     company_name = str(body.get('company_name', '')).strip()
@@ -247,10 +248,16 @@ def upsert_invoice_profile(connection, user_id, body):
         postal_code,
         body.get('region'),
         body.get('phone'),
-        user_id,
     )
 
-    if existing is None:
+    if invoice_profile_id is None:
+        existing_count = connection.execute(
+            'SELECT COUNT(*) FROM invoice_profiles WHERE user_id = ?',
+            (user_id,),
+        ).fetchone()[0]
+        if existing_count >= MAX_INVOICE_PROFILES:
+            raise ValueError(f'You can save up to {MAX_INVOICE_PROFILES} invoice profiles')
+
         connection.execute(
             '''
             INSERT INTO invoice_profiles (
@@ -258,18 +265,38 @@ def upsert_invoice_profile(connection, user_id, body):
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
-            params,
+            (*params, user_id),
         )
-    else:
-        connection.execute(
-            '''
-            UPDATE invoice_profiles
-            SET company_name = ?, tax_id = ?, tax_office = ?, profession = ?, line_1 = ?, city = ?,
-                postal_code = ?, region = ?, phone = ?
-            WHERE user_id = ?
-            ''',
-            params,
-        )
+        return
+
+    existing = connection.execute(
+        'SELECT id FROM invoice_profiles WHERE id = ? AND user_id = ?',
+        (invoice_profile_id, user_id),
+    ).fetchone()
+    if existing is None:
+        raise ValueError('Invoice profile not found')
+
+    connection.execute(
+        '''
+        UPDATE invoice_profiles
+        SET company_name = ?, tax_id = ?, tax_office = ?, profession = ?, line_1 = ?, city = ?,
+            postal_code = ?, region = ?, phone = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ? AND user_id = ?
+        ''',
+        (*params, invoice_profile_id, user_id),
+    )
+
+
+def fetch_invoice_profiles(user_id):
+    return db.fetch_all(
+        '''
+        SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at
+        FROM invoice_profiles
+        WHERE user_id = ?
+        ORDER BY datetime(created_at) ASC, id ASC
+        ''',
+        (user_id,),
+    )
 
 
 def build_order_payload(order_id):
@@ -285,6 +312,25 @@ def build_order_payload(order_id):
         return None
 
     order_record = db.fetch_one('SELECT * FROM orders WHERE id = ?', (order_id,))
+    shipping_address = None
+    billing_address = None
+    customer_phone = None
+
+    if order_record is not None:
+        if order_record['shipping_address_id']:
+            shipping_address = db.fetch_one(
+                'SELECT id, label, recipient_name, line_1, line_2, city, postal_code, region, country_code FROM user_addresses WHERE id = ?',
+                (order_record['shipping_address_id'],),
+            )
+        if order_record['billing_address_id']:
+            billing_address = db.fetch_one(
+                'SELECT id, label, recipient_name, line_1, line_2, city, postal_code, region, country_code FROM user_addresses WHERE id = ?',
+                (order_record['billing_address_id'],),
+            )
+        if order_record['user_id']:
+            customer = db.fetch_one('SELECT phone FROM users WHERE id = ?', (order_record['user_id'],))
+            customer_phone = customer['phone'] if customer is not None else None
+
     items = db.fetch_all(
         '''
         SELECT id, product_id, sku, product_name, quantity, unit_price, line_total, created_at
@@ -323,7 +369,11 @@ def build_order_payload(order_id):
     )
 
     payload = row_to_dict(order)
+    payload['status'] = payload.get('order_status')
     payload['order'] = row_to_dict(order_record)
+    payload['shipping_address'] = row_to_dict(shipping_address)
+    payload['billing_address'] = row_to_dict(billing_address)
+    payload['customer_phone'] = customer_phone
     payload['items'] = rows_to_dicts(items)
     payload['payments'] = rows_to_dicts(payments)
     payload['shipments'] = rows_to_dicts(shipments)
@@ -426,9 +476,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             if address_match:
                 return self.handle_create_user_address(int(address_match.group(1)), body)
 
-            invoice_match = re.fullmatch(r'/api/users/(\d+)/invoice-profile', path)
+            invoice_match = re.fullmatch(r'/api/users/(\d+)/invoice-profiles', path)
             if invoice_match:
-                return self.handle_upsert_invoice_profile(int(invoice_match.group(1)), body)
+                return self.handle_create_invoice_profile(int(invoice_match.group(1)), body)
 
             cart_item_match = re.fullmatch(r'/api/carts/(\d+)/items', path)
             if cart_item_match:
@@ -481,6 +531,14 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                     body,
                 )
 
+            invoice_match = re.fullmatch(r'/api/users/(\d+)/invoice-profiles/(\d+)', path)
+            if invoice_match:
+                return self.handle_update_invoice_profile(
+                    int(invoice_match.group(1)),
+                    int(invoice_match.group(2)),
+                    body,
+                )
+
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
         except ValueError as error:
             return self.send_json({'error': str(error)}, HTTPStatus.BAD_REQUEST)
@@ -508,9 +566,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                     int(address_match.group(2)),
                 )
 
-            invoice_match = re.fullmatch(r'/api/users/(\d+)/invoice-profile', path)
+            invoice_match = re.fullmatch(r'/api/users/(\d+)/invoice-profiles/(\d+)', path)
             if invoice_match:
-                return self.handle_delete_invoice_profile(int(invoice_match.group(1)))
+                return self.handle_delete_invoice_profile(int(invoice_match.group(1)), int(invoice_match.group(2)))
 
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
         except Exception as error:
@@ -602,14 +660,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             'SELECT id, method_type, provider, card_brand, card_last4, expiry_month, expiry_year, is_default, is_active, created_at FROM payment_methods WHERE user_id = ? ORDER BY id ASC',
             (user_id,),
         )
-        orders = db.fetch_all(
-            'SELECT id, order_number, status, payment_status, fulfillment_status, total_amount, currency_code, placed_at FROM orders WHERE user_id = ? ORDER BY id DESC',
-            (user_id,),
-        )
-        invoice_profile = db.fetch_one(
-            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
-            (user_id,),
-        )
+        order_rows = db.fetch_all('SELECT id FROM orders WHERE user_id = ? ORDER BY id DESC', (user_id,))
+        orders = [build_order_payload(row['id']) for row in order_rows]
+        invoice_profiles = fetch_invoice_profiles(user_id)
         primary_address = db.fetch_one(
             '''
             SELECT id, label, recipient_name, line_1, line_2, city, postal_code, region, country_code,
@@ -626,8 +679,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         payload['addresses'] = rows_to_dicts(addresses)
         payload['primary_address'] = row_to_dict(primary_address)
         payload['payment_methods'] = rows_to_dicts(payment_methods)
-        payload['orders'] = rows_to_dicts(orders)
-        payload['invoice_profile'] = row_to_dict(invoice_profile)
+        payload['orders'] = orders
+        payload['invoice_profiles'] = rows_to_dicts(invoice_profiles)
+        payload['invoice_profile'] = row_to_dict(invoice_profiles[0]) if invoice_profiles else None
         self.send_json(payload)
 
     def handle_get_auth_session(self, query):
@@ -706,29 +760,40 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             user_id = cursor.lastrowid
             recipient = f'{first_name} {last_name}'.strip()
             upsert_primary_address(connection, user_id, body, recipient)
-            upsert_invoice_profile(connection, user_id, body)
+            save_invoice_profile(connection, user_id, body)
             return user_id
 
         user_id = db.run_transaction(create_user)
         session_token = self._create_session(user_id)
         self.send_json(build_session_payload(session_token), HTTPStatus.CREATED)
 
-    def handle_upsert_invoice_profile(self, user_id, body):
+    def handle_create_invoice_profile(self, user_id, body):
         if db.fetch_one('SELECT id FROM users WHERE id = ?', (user_id,)) is None:
             return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
 
-        db.run_transaction(lambda connection: upsert_invoice_profile(connection, user_id, body))
+        invoice_profile_id = db.run_transaction(lambda connection: save_invoice_profile(connection, user_id, body))
         invoice_profile = db.fetch_one(
-            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
-            (user_id,),
+            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE id = ? AND user_id = ?',
+            (invoice_profile_id, user_id),
+        )
+        self.send_json({'invoice_profile': row_to_dict(invoice_profile)}, HTTPStatus.CREATED)
+
+    def handle_update_invoice_profile(self, user_id, invoice_profile_id, body):
+        if db.fetch_one('SELECT id FROM users WHERE id = ?', (user_id,)) is None:
+            return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
+
+        db.run_transaction(lambda connection: save_invoice_profile(connection, user_id, body, invoice_profile_id))
+        invoice_profile = db.fetch_one(
+            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE id = ? AND user_id = ?',
+            (invoice_profile_id, user_id),
         )
         self.send_json({'invoice_profile': row_to_dict(invoice_profile)})
 
-    def handle_delete_invoice_profile(self, user_id):
+    def handle_delete_invoice_profile(self, user_id, invoice_profile_id):
         if db.fetch_one('SELECT id FROM users WHERE id = ?', (user_id,)) is None:
             return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
 
-        db.execute('DELETE FROM invoice_profiles WHERE user_id = ?', (user_id,))
+        deleted = db.execute('DELETE FROM invoice_profiles WHERE user_id = ? AND id = ?', (user_id, invoice_profile_id))
         self.send_json({'status': 'deleted'})
 
     def handle_update_user_profile(self, user_id, body):
@@ -761,7 +826,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             recipient = f"{first_name} {last_name}".strip()
             if has_address_payload(body):
                 upsert_primary_address(connection, user_id, body, recipient)
-            upsert_invoice_profile(connection, user_id, body)
+            save_invoice_profile(connection, user_id, body)
 
         db.run_transaction(update_profile)
         self.send_json(self._build_full_user_payload(user_id))
@@ -806,10 +871,12 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         if db.fetch_one('SELECT id FROM users WHERE id = ?', (user_id,)) is None:
             return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
 
-        required = ['recipient_name', 'line_1', 'city', 'postal_code']
+        required = ['line_1', 'city', 'postal_code']
         for field in required:
             if not body.get(field):
                 raise ValueError(f'{field} is required')
+
+        recipient_name = get_user_recipient_name(user_id)
 
         def create_address(connection):
             is_default_shipping = int(to_bool(body.get('is_default_shipping', 0)))
@@ -831,7 +898,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 (
                     user_id,
                     body.get('label'),
-                    body['recipient_name'],
+                    recipient_name,
                     body['line_1'],
                     body.get('line_2'),
                     body['city'],
@@ -856,13 +923,13 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         if address is None:
             return self.send_json({'error': 'Address not found'}, HTTPStatus.NOT_FOUND)
 
-        recipient_name = str(body.get('recipient_name', address['recipient_name'])).strip()
+        recipient_name = get_user_recipient_name(user_id)
         line_1 = str(body.get('line_1', address['line_1'])).strip()
         city = str(body.get('city', address['city'])).strip()
         postal_code = str(body.get('postal_code', address['postal_code'])).strip()
 
-        if not recipient_name or not line_1 or not city or not postal_code:
-            raise ValueError('recipient_name, line_1, city, and postal_code are required')
+        if not line_1 or not city or not postal_code:
+            raise ValueError('line_1, city, and postal_code are required')
 
         is_default_shipping = int(to_bool(body.get('is_default_shipping', address['is_default_shipping'])))
         is_default_billing = int(to_bool(body.get('is_default_billing', address['is_default_billing'])))
@@ -1393,14 +1460,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             'SELECT id, method_type, provider, card_brand, card_last4, expiry_month, expiry_year, is_default, is_active, created_at FROM payment_methods WHERE user_id = ? ORDER BY id ASC',
             (user_id,),
         )
-        orders = db.fetch_all(
-            'SELECT id, order_number, status, payment_status, fulfillment_status, total_amount, currency_code, placed_at FROM orders WHERE user_id = ? ORDER BY id DESC',
-            (user_id,),
-        )
-        invoice_profile = db.fetch_one(
-            'SELECT id, company_name, tax_id, tax_office, profession, line_1, city, postal_code, region, phone, created_at, updated_at FROM invoice_profiles WHERE user_id = ?',
-            (user_id,),
-        )
+        order_rows = db.fetch_all('SELECT id FROM orders WHERE user_id = ? ORDER BY id DESC', (user_id,))
+        orders = [build_order_payload(row['id']) for row in order_rows]
+        invoice_profiles = fetch_invoice_profiles(user_id)
         primary_address = db.fetch_one(
             '''
             SELECT id, label, recipient_name, line_1, line_2, city, postal_code, region, country_code,
@@ -1417,8 +1479,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         payload['addresses'] = rows_to_dicts(addresses)
         payload['primary_address'] = row_to_dict(primary_address)
         payload['payment_methods'] = rows_to_dicts(payment_methods)
-        payload['orders'] = rows_to_dicts(orders)
-        payload['invoice_profile'] = row_to_dict(invoice_profile)
+        payload['orders'] = orders
+        payload['invoice_profiles'] = rows_to_dicts(invoice_profiles)
+        payload['invoice_profile'] = row_to_dict(invoice_profiles[0]) if invoice_profiles else None
         return payload
 
     def serve_static(self, path):
