@@ -49,70 +49,178 @@
         <div class="auth-message" id="order-view-message" hidden></div>
 
         <section class="order-view-content" id="order-view-content" hidden>
-          <article class="order-view-card order-view-hero-card">
-            <div class="order-view-order-block">
-              <p class="eyebrow">Order details</p>
-              <h1 id="order-view-title">Order details</h1>
-              <small id="order-view-date">No date yet</small>
-            </div>
-            <div class="order-view-status-block">
-              <img class="order-view-status-icon" id="order-view-status-icon" src="Photos/box.png" alt="" />
-              <div>
-                <p class="eyebrow">Status</p>
-                <h2 id="order-view-status-title">Preparing</h2>
-                <p id="order-view-status-copy">Your order is being prepared.</p>
+
+          <!-- Hero banner -->
+          <article class="order-view-hero" id="order-view-hero">
+            <div class="order-hero-top">
+              <div class="order-hero-id">
+                <p class="eyebrow">Order</p>
+                <h1 id="order-view-title">Order details</h1>
+                <time class="order-hero-date" id="order-view-date"></time>
+              </div>
+              <div class="order-hero-status" id="order-hero-status">
+                <img class="order-hero-status-icon" id="order-view-status-icon" src="Photos/box.png" alt="" />
+                <div>
+                  <span class="order-hero-badge" id="order-view-status-title">Pending</span>
+                  <p class="order-hero-status-copy" id="order-view-status-copy"></p>
+                </div>
               </div>
             </div>
+            <!-- Progress stepper -->
+            <ol class="order-progress" id="order-progress" aria-label="Order progress">
+              <li class="order-progress-step" data-step="placed">
+                <span class="order-progress-dot"></span>
+                <span class="order-progress-label">Placed</span>
+              </li>
+              <li class="order-progress-step" data-step="payment">
+                <span class="order-progress-dot"></span>
+                <span class="order-progress-label">Payment</span>
+              </li>
+              <li class="order-progress-step" data-step="preparing">
+                <span class="order-progress-dot"></span>
+                <span class="order-progress-label">Preparing</span>
+              </li>
+              <li class="order-progress-step" data-step="shipped">
+                <span class="order-progress-dot"></span>
+                <span class="order-progress-label">Shipped</span>
+              </li>
+              <li class="order-progress-step" data-step="delivered">
+                <span class="order-progress-dot"></span>
+                <span class="order-progress-label">Delivered</span>
+              </li>
+            </ol>
           </article>
 
           <div class="order-view-grid">
-            <article class="order-view-card order-view-card-wide">
+            <!-- Products -->
+            <article class="order-view-card order-view-card-main">
               <div class="order-view-section-head">
-                <img src="Photos/box.png" alt="" />
+                <div class="order-section-icon-wrap">
+                  <img src="Photos/box.png" alt="" />
+                </div>
                 <div>
                   <span>Products</span>
                   <strong id="order-view-products-count">0 items</strong>
                 </div>
               </div>
               <div class="order-view-products" id="order-view-products"></div>
+              <div class="order-view-products-footer" id="order-view-products-footer" hidden>
+                <span>Order total</span>
+                <strong id="order-view-total"></strong>
+              </div>
             </article>
 
-            <article class="order-view-card">
-              <div class="order-view-section-head">
-                <img src="Photos/home.png" alt="" />
-                <div>
-                  <span>Shipping address</span>
-                  <strong id="order-view-address-label">Saved address</strong>
+            <div class="order-view-sidebar">
+              <!-- Address -->
+              <article class="order-view-card">
+                <div class="order-view-section-head">
+                  <div class="order-section-icon-wrap order-section-icon-wrap--blue">
+                    <img src="Photos/home.png" alt="" />
+                  </div>
+                  <div>
+                    <span>Shipping address</span>
+                    <strong id="order-view-address-label">Saved address</strong>
+                  </div>
                 </div>
-              </div>
-              <p class="order-detail-copy" id="order-view-address"></p>
-            </article>
+                <address class="order-view-address-block" id="order-view-address"></address>
+              </article>
 
-            <article class="order-view-card">
-              <div class="order-view-section-head">
-                <img src="Photos/telephone.png" alt="" />
-                <div>
-                  <span>Contact</span>
-                  <strong id="order-view-phone">No phone saved</strong>
+              <!-- Contact & Tracking -->
+              <article class="order-view-card">
+                <div class="order-view-section-head">
+                  <div class="order-section-icon-wrap order-section-icon-wrap--teal">
+                    <img src="Photos/delivery-truck.png" alt="" />
+                  </div>
+                  <div>
+                    <span>Shipment</span>
+                    <strong id="order-view-phone">No phone saved</strong>
+                  </div>
                 </div>
-              </div>
-              <p class="order-detail-copy" id="order-view-tracking"></p>
-            </article>
+                <ul class="order-view-meta-list" id="order-view-tracking"></ul>
+              </article>
 
-            <article class="order-view-card">
-              <div class="order-view-section-head">
-                <img src="Photos/delivery-truck.png" alt="" />
-                <div>
-                  <span>Payment and shipment</span>
-                  <strong id="order-view-payment">Payment pending</strong>
+              <!-- Payment & Status -->
+              <article class="order-view-card">
+                <div class="order-view-section-head">
+                  <div class="order-section-icon-wrap order-section-icon-wrap--purple">
+                    <img src="Photos/order.png" alt="" />
+                  </div>
+                  <div>
+                    <span>Payment &amp; status</span>
+                    <strong id="order-view-payment">Payment pending</strong>
+                  </div>
                 </div>
-              </div>
-              <ul class="order-view-meta-list" id="order-view-meta"></ul>
-            </article>
+                <ul class="order-view-meta-list" id="order-view-meta"></ul>
+              </article>
+            </div>
           </div>
         </section>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner-grid">
+        <div class="footer-brand-col">
+          <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+            <span class="brand-mark">B</span>
+            <span class="brand-copy">
+              <strong>Bluehaven</strong>
+              <small>Tech and Books Marketplace</small>
+            </span>
+          </a>
+          <p class="footer-tagline">Your one-stop shop for electronics, phones, tablets and books.</p>
+          <div class="footer-socials" aria-label="Social links">
+            <a href="#" aria-label="Facebook"><img src="Photos/facebook.png" alt="Facebook" /></a>
+            <a href="#" aria-label="Instagram"><img src="Photos/instagram.png" alt="Instagram" /></a>
+            <a href="#" aria-label="YouTube"><img src="Photos/youtube.png" alt="YouTube" /></a>
+          </div>
+        </div>
+        <nav class="footer-nav-col" aria-label="Store navigation">
+          <strong class="footer-nav-heading">Store</strong>
+          <ul class="footer-nav-list">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#product-browser">Products</a></li>
+            <li><a href="basket.html">Basket</a></li>
+            <li><a href="favorites.html">Favorites</a></li>
+          </ul>
+        </nav>
+        <nav class="footer-nav-col" aria-label="Account navigation">
+          <strong class="footer-nav-heading">Account</strong>
+          <ul class="footer-nav-list">
+            <li><a href="profile.html">My profile</a></li>
+            <li><a href="profile.html#pending-orders-card">Orders</a></li>
+            <li><a href="profile.html#addresses-data-card">Addresses</a></li>
+            <li><a href="profile.html#invoice-data-card">Invoice data</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="container footer-payments" aria-label="Secure payment methods">
+        <span class="footer-payments-label">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Secure payments
+        </span>
+        <div class="payment-strip">
+          <img src="Photos/visa.avif" alt="Visa" />
+          <img src="Photos/mastercard.avif" alt="Mastercard" />
+          <img src="Photos/paypal.avif" alt="PayPal" />
+          <img src="Photos/amex.avif" alt="American Express" />
+          <img src="Photos/maestro.avif" alt="Maestro" />
+          <img src="Photos/diners.avif" alt="Diners Club" />
+          <img src="Photos/visa-verify.avif" alt="Verified by Visa" />
+          <img src="Photos/securecode.avif" alt="Mastercard SecureCode" />
+          <img src="Photos/safekey.avif" alt="American Express SafeKey" />
+          <img src="Photos/symantec.avif" alt="Symantec" />
+        </div>
+      </div>
+      <div class="container footer-copyright">
+        <p>&copy; <span class="footer-year"></span> Bluehaven Store. All rights reserved.</p>
+        <nav class="footer-legal" aria-label="Legal links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Use</a>
+          <a href="#">Cookies</a>
+        </nav>
+      </div>
+    </footer>
 
     <script src="site.js?v=20260506b"></script>
     <script src="order.js?v=20260506w"></script>

@@ -71,6 +71,13 @@
     });
   }
 
+  function setFooterYear() {
+    const currentYear = String(new Date().getFullYear());
+    document.querySelectorAll('.footer-year').forEach((el) => {
+      el.textContent = currentYear;
+    });
+  }
+
   window.StoreSite = {
     getCurrentUserId,
     isLoggedIn,
@@ -82,9 +89,14 @@
     bindFavoritesLinks,
   };
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bindFavoritesLinks, { once: true });
-  } else {
+  function initSite() {
     bindFavoritesLinks();
+    setFooterYear();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSite, { once: true });
+  } else {
+    initSite();
   }
 })();

@@ -53,33 +53,48 @@
     <main class="standalone-page profile-page-shell">
       <section class="profile-auth-layout">
         <article class="auth-panel auth-panel-intro" id="auth-intro-panel">
-          <div class="intro-badge-row">
-            <img src="Photos/user.png" alt="" />
+          <div class="intro-brand-row">
+            <span class="brand-mark">B</span>
             <span class="intro-badge">Bluehaven ID</span>
           </div>
-          <p class="eyebrow">Account access</p>
-          <h1>Register or sign in to manage your Bluehaven profile</h1>
+          <h1 class="intro-headline">Your store,<br>your account.</h1>
           <p class="auth-copy">
-            Create an account to save your details, or sign in to review your orders and profile data
+            Sign in to track orders, manage your profile and addresses, and save your favourite products.
           </p>
           <div class="intro-highlights">
             <div class="intro-highlight">
-              <strong>Profile</strong>
-              <span>Edit your personal data in one place</span>
+              <span class="intro-highlight-icon">
+                <img src="Photos/order.png" alt="" />
+              </span>
+              <div>
+                <strong>Orders</strong>
+                <span>Track pending and past orders in one place</span>
+              </div>
             </div>
             <div class="intro-highlight">
-              <strong>Billing</strong>
-              <span>Store address and invoice information</span>
+              <span class="intro-highlight-icon">
+                <img src="Photos/home.png" alt="" />
+              </span>
+              <div>
+                <strong>Addresses</strong>
+                <span>Save shipping and billing addresses</span>
+              </div>
             </div>
             <div class="intro-highlight">
-              <strong>Orders</strong>
-              <span>Review the latest activity from your account</span>
+              <span class="intro-highlight-icon">
+                <img src="Photos/heart.png" alt="" />
+              </span>
+              <div>
+                <strong>Favourites</strong>
+                <span>Keep a wishlist of products you love</span>
+              </div>
             </div>
           </div>
           <div class="intro-actions">
-            <button class="button button-primary" id="intro-signup-button" type="button">Sign up</button>
-            <a class="button button-secondary" href="index.html">Back to store</a>
+            <button class="button button-primary" id="intro-signup-button" type="button">Create account</button>
+            <a class="button button-ghost" href="index.html">Back to store</a>
           </div>
+          <div class="intro-deco" aria-hidden="true"></div>
         </article>
 
         <article class="auth-panel auth-panel-forms" id="auth-forms-panel">
@@ -91,106 +106,158 @@
           </div>
 
           <section class="auth-card" id="login-card">
-            <div class="card-heading-row">
-              <div>
-                <p class="eyebrow">Returning customer</p>
-                <h2>Sign in</h2>
-              </div>
+            <div class="auth-card-heading">
+              <p class="eyebrow">Returning customer</p>
+              <h2>Welcome back</h2>
+              <p class="auth-card-sub">Enter your email and password to continue</p>
             </div>
             <form id="login-form" class="auth-form">
-              <label>
-                <span>Email</span>
-                <input type="email" name="email" autocomplete="email" required />
+              <label class="auth-field">
+                <span class="auth-field-label">Email address</span>
+                <div class="auth-input-wrap">
+                  <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 7l10 7 10-7"/></svg>
+                  <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+                </div>
               </label>
-              <label>
-                <span>Password</span>
-                <input type="password" name="password" autocomplete="current-password" required />
+              <label class="auth-field">
+                <span class="auth-field-label">Password</span>
+                <div class="auth-input-wrap">
+                  <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <input type="password" name="password" autocomplete="current-password" placeholder="Your password" required />
+                  <button class="auth-pw-toggle" type="button" aria-label="Show password" tabindex="-1">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </button>
+                </div>
               </label>
-              <button class="button button-primary" type="submit">Log in</button>
+              <button class="button button-primary auth-submit-button" type="submit">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                Log in
+              </button>
             </form>
-            <button class="button button-secondary auth-inline-button" id="login-signup-button" type="button">Need an account? Sign up</button>
+            <div class="auth-divider"><span>New here?</span></div>
+            <button class="button button-secondary auth-inline-button" id="login-signup-button" type="button">Create a free account</button>
           </section>
 
           <section class="auth-card" id="register-card" hidden>
-            <div class="card-heading-row">
-              <div>
-                <p class="eyebrow">New customer</p>
-                <h2>Create your account</h2>
-              </div>
+            <div class="auth-card-heading">
+              <p class="eyebrow">New customer</p>
+              <h2>Create your account</h2>
+              <p class="auth-card-sub">Fill in your details below — takes less than a minute</p>
             </div>
             <form id="register-form" class="auth-form">
+              <p class="auth-section-title">Personal details</p>
               <div class="auth-form-grid">
-                <label>
-                  <span>First name</span>
-                  <input type="text" name="first_name" autocomplete="given-name" required />
+                <label class="auth-field">
+                  <span class="auth-field-label">First name</span>
+                  <div class="auth-input-wrap">
+                    <input type="text" name="first_name" autocomplete="given-name" placeholder="Nikos" required />
+                  </div>
                 </label>
-                <label>
-                  <span>Last name</span>
-                  <input type="text" name="last_name" autocomplete="family-name" required />
+                <label class="auth-field">
+                  <span class="auth-field-label">Last name</span>
+                  <div class="auth-input-wrap">
+                    <input type="text" name="last_name" autocomplete="family-name" placeholder="Ioannou" required />
+                  </div>
                 </label>
-                <label>
-                  <span>Email</span>
-                  <input type="email" name="email" autocomplete="email" required />
+                <label class="auth-field">
+                  <span class="auth-field-label">Email address</span>
+                  <div class="auth-input-wrap">
+                    <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 7l10 7 10-7"/></svg>
+                    <input type="email" name="email" autocomplete="email" placeholder="you@example.com" required />
+                  </div>
                 </label>
-                <label>
-                  <span>Phone</span>
-                  <input type="tel" name="phone" autocomplete="tel" />
+                <label class="auth-field">
+                  <span class="auth-field-label">Mobile phone</span>
+                  <div class="auth-input-wrap">
+                    <input type="tel" name="phone" autocomplete="tel" placeholder="+30 69X XXX XXXX" />
+                  </div>
                 </label>
-                <label>
-                  <span>Landline</span>
-                  <input type="tel" name="landline" autocomplete="tel-national" />
+                <label class="auth-field">
+                  <span class="auth-field-label">Landline (optional)</span>
+                  <div class="auth-input-wrap">
+                    <input type="tel" name="landline" autocomplete="tel-national" placeholder="+30 21X XXX XXXX" />
+                  </div>
                 </label>
-                <label class="auth-form-grid-full">
-                  <span>Address</span>
-                  <input type="text" name="line_1" autocomplete="address-line1" />
+                <label class="auth-field">
+                  <span class="auth-field-label">Password</span>
+                  <div class="auth-input-wrap">
+                    <svg class="auth-input-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <input type="password" name="password" autocomplete="new-password" placeholder="Min. 6 characters" minlength="6" required />
+                    <button class="auth-pw-toggle" type="button" aria-label="Show password" tabindex="-1">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
                 </label>
-                <label>
-                  <span>Postal code</span>
-                  <input type="text" name="postal_code" autocomplete="postal-code" />
+              </div>
+
+              <p class="auth-section-title">Shipping address <span class="auth-section-optional">(optional)</span></p>
+              <div class="auth-form-grid">
+                <label class="auth-field auth-form-grid-full">
+                  <span class="auth-field-label">Street address</span>
+                  <div class="auth-input-wrap">
+                    <input type="text" name="line_1" autocomplete="address-line1" placeholder="25 Ermou Street, Apt 3" />
+                  </div>
                 </label>
-                <label>
-                  <span>City</span>
-                  <input type="text" name="city" autocomplete="address-level2" />
+                <label class="auth-field">
+                  <span class="auth-field-label">Postal code</span>
+                  <div class="auth-input-wrap">
+                    <input type="text" name="postal_code" autocomplete="postal-code" placeholder="10563" />
+                  </div>
                 </label>
-                <label>
-                  <span>Region</span>
-                  <input type="text" name="region" autocomplete="address-level1" />
+                <label class="auth-field">
+                  <span class="auth-field-label">City</span>
+                  <div class="auth-input-wrap">
+                    <input type="text" name="city" autocomplete="address-level2" placeholder="Athens" />
+                  </div>
                 </label>
-                <label>
-                  <span>Password</span>
-                  <input type="password" name="password" autocomplete="new-password" minlength="6" required />
+                <label class="auth-field">
+                  <span class="auth-field-label">Region</span>
+                  <div class="auth-input-wrap">
+                    <input type="text" name="region" autocomplete="address-level1" placeholder="Attica" />
+                  </div>
                 </label>
               </div>
 
               <div class="invoice-box">
                 <label class="checkbox-line">
-                  <input type="checkbox" name="invoice_requested" value="1" />
-                  <span>Add invoice details for business purchases</span>
+                  <input type="checkbox" name="invoice_requested" value="1" id="invoice-toggle" />
+                  <span>I need an invoice for business purchases</span>
                 </label>
-
-                <div class="auth-form-grid">
-                  <label class="auth-form-grid-full">
-                    <span>Company name</span>
-                    <input type="text" name="company_name" />
+                <div class="auth-form-grid" id="invoice-details" hidden>
+                  <label class="auth-field auth-form-grid-full">
+                    <span class="auth-field-label">Company name</span>
+                    <div class="auth-input-wrap">
+                      <input type="text" name="company_name" placeholder="Bluehaven Ltd." />
+                    </div>
                   </label>
-                  <label>
-                    <span>VAT number</span>
-                    <input type="text" name="tax_id" />
+                  <label class="auth-field">
+                    <span class="auth-field-label">VAT number</span>
+                    <div class="auth-input-wrap">
+                      <input type="text" name="tax_id" placeholder="EL000000000" />
+                    </div>
                   </label>
-                  <label>
-                    <span>Tax office</span>
-                    <input type="text" name="tax_office" />
+                  <label class="auth-field">
+                    <span class="auth-field-label">Tax office</span>
+                    <div class="auth-input-wrap">
+                      <input type="text" name="tax_office" placeholder="Athens A'" />
+                    </div>
                   </label>
-                  <label class="auth-form-grid-full">
-                    <span>Profession</span>
-                    <input type="text" name="profession" />
+                  <label class="auth-field auth-form-grid-full">
+                    <span class="auth-field-label">Profession</span>
+                    <div class="auth-input-wrap">
+                      <input type="text" name="profession" placeholder="e.g. Software Engineer" />
+                    </div>
                   </label>
                 </div>
               </div>
 
-              <button class="button button-primary" type="submit">Create account</button>
+              <button class="button button-primary auth-submit-button" type="submit">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+                Create account
+              </button>
             </form>
-            <button class="button button-secondary auth-inline-button" id="register-login-button" type="button">Already registered? Log in</button>
+            <div class="auth-divider"><span>Already registered?</span></div>
+            <button class="button button-secondary auth-inline-button" id="register-login-button" type="button">Log in to your account</button>
           </section>
         </article>
 
@@ -200,16 +267,20 @@
               <nav class="account-side-nav" aria-label="Account sections">
                 <button class="account-side-link account-side-link-button is-active" data-profile-toggle="true" type="button">Profile</button>
                 <div class="account-sub-nav" id="profile-sub-nav">
-                  <a class="account-sub-link is-active" data-section="personal-data-card" href="#personal-data-card">Personal data</a>
-                  <a class="account-sub-link" data-section="invoice-data-card" href="#invoice-data-card">Invoice data</a>
-                  <a class="account-sub-link" data-section="addresses-data-card" href="#addresses-data-card">My addresses</a>
+                  <a class="account-sub-link is-active" data-section="personal-data-card" href="#personal-data-card">Personal Data</a>
+                  <a class="account-sub-link" data-section="invoice-data-card" href="#invoice-data-card">Invoice Data</a>
+                  <a class="account-sub-link" data-section="addresses-data-card" href="#addresses-data-card">Addresses</a>
                 </div>
                 <button class="account-side-link account-side-link-button" data-orders-toggle="true" type="button">Orders</button>
                 <div class="account-sub-nav" id="orders-sub-nav" hidden>
-                  <a class="account-sub-link" data-section="pending-orders-card" href="#pending-orders-card">Pending orders</a>
-                  <a class="account-sub-link" data-section="completed-orders-card" href="#completed-orders-card">Completed orders</a>
+                  <a class="account-sub-link" data-section="pending-orders-card" href="#pending-orders-card">Pending</a>
+                  <a class="account-sub-link" data-section="completed-orders-card" href="#completed-orders-card">Completed</a>
                 </div>
-                <a class="account-side-link" data-section="installments-card" href="#installments-card">Installment purchases</a>
+                <button class="account-side-link account-side-link-button" data-installments-toggle="true" type="button">Installment purchases</button>
+                <div class="account-sub-nav" id="installments-sub-nav" hidden>
+                  <a class="account-sub-link" data-section="installments-pending-card" href="#installments-pending-card">Pending</a>
+                  <a class="account-sub-link" data-section="installments-completed-card" href="#installments-completed-card">Completed</a>
+                </div>
                 <a class="account-side-link" data-section="coupons-card" href="#coupons-card">My coupons</a>
                 <a class="account-side-link" data-section="favorites-card" href="#favorites-card">Favorites</a>
                 <button class="account-side-link account-side-link-button account-side-link-danger" id="logout-button" type="button">Log out</button>
@@ -221,7 +292,7 @@
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Profile</p>
-                    <h3>Personal data</h3>
+                    <h3>Personal Data</h3>
                   </div>
                   <div class="account-section-actions">
                     <button class="button button-secondary" id="personal-edit-button" type="button">Edit</button>
@@ -266,7 +337,7 @@
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Profile</p>
-                    <h3>Invoice data</h3>
+                    <h3>Invoice Data</h3>
                   </div>
                 </div>
                 <article class="summary-record-card profile-editor-card" id="invoice-form-card" hidden>
@@ -328,7 +399,7 @@
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Profile</p>
-                    <h3>My addresses</h3>
+                    <h3>My Addresses</h3>
                   </div>
                 </div>
                 <article class="summary-record-card profile-editor-card" id="address-form-card" hidden>
@@ -382,7 +453,7 @@
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Orders</p>
-                    <h3>Pending orders</h3>
+                    <h3>Pending Orders</h3>
                   </div>
                 </div>
                 <article class="summary-record-card profile-subsection-card orders-section-card">
@@ -397,21 +468,15 @@
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Orders</p>
-                    <h3>Completed orders</h3>
+                    <h3>Completed Orders</h3>
                   </div>
                 </div>
                 <article class="summary-record-card profile-subsection-card orders-section-card">
-                  <div class="summary-record-head orders-section-head">
-                    <div>
-                      <strong>Completed orders</strong>
-                      <p class="form-helper">Finished orders you can review</p>
-                    </div>
-                  </div>
                   <div class="orders-toolbar">
                     <div class="orders-search-panel">
                       <label class="search-label" for="orders-search-input">Search completed orders</label>
                       <div class="search-shell search-shell-wide orders-search-shell">
-                        <input id="orders-search-input" type="search" placeholder="Search order number or status" />
+                        <input id="orders-search-input" type="search" placeholder="Order number or product name" />
                       </div>
                     </div>
                     <label class="orders-filter-panel">
@@ -427,26 +492,45 @@
                   <div class="account-orders-list" id="account-orders-completed-list">
                     <p class="account-empty">No completed orders</p>
                   </div>
+                  <div class="orders-pagination" id="orders-completed-pagination" hidden></div>
                 </article>
               </section>
 
-              <section class="account-orders" id="installments-card" hidden>
+              <section class="account-orders profile-subsection-panel" id="installments-pending-card" hidden>
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Installments</p>
-                    <h3>Products bought with installments</h3>
+                    <h3>Pending Installments</h3>
                   </div>
                 </div>
-                <div class="account-orders-list" id="account-installments-list">
-                  <p class="account-empty">No installment purchases found</p>
+                <article class="summary-record-card profile-subsection-card orders-section-card">
+                  <div class="account-orders-list" id="account-installments-pending-list">
+                    <p class="account-empty">No pending installments</p>
+                  </div>
+                  <div class="orders-pagination" id="installments-pending-pagination" hidden></div>
+                </article>
+              </section>
+
+              <section class="account-orders profile-subsection-panel" id="installments-completed-card" hidden>
+                <div class="split-heading account-orders-head">
+                  <div>
+                    <p class="eyebrow">Installments</p>
+                    <h3>Completed Installments</h3>
+                  </div>
                 </div>
+                <article class="summary-record-card profile-subsection-card orders-section-card">
+                  <div class="account-orders-list" id="account-installments-completed-list">
+                    <p class="account-empty">No completed installments</p>
+                  </div>
+                  <div class="orders-pagination" id="installments-completed-pagination" hidden></div>
+                </article>
               </section>
 
               <section class="account-orders" id="coupons-card" hidden>
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">My coupons</p>
-                    <h3>Your available savings</h3>
+                    <h3>Your Available Savings</h3>
                   </div>
                 </div>
                 <div class="account-orders-list" id="account-coupons-list">
@@ -458,7 +542,7 @@
                 <div class="split-heading account-orders-head">
                   <div>
                     <p class="eyebrow">Favorites</p>
-                    <h3>Your saved products</h3>
+                    <h3>Your Saved Products</h3>
                   </div>
                   <p class="account-empty" id="favorites-results-summary">0 products</p>
                 </div>
@@ -483,6 +567,70 @@
         </article>
       </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner-grid">
+        <div class="footer-brand-col">
+          <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+            <span class="brand-mark">B</span>
+            <span class="brand-copy">
+              <strong>Bluehaven</strong>
+              <small>Tech and Books Marketplace</small>
+            </span>
+          </a>
+          <p class="footer-tagline">Your one-stop shop for electronics, phones, tablets and books.</p>
+          <div class="footer-socials" aria-label="Social links">
+            <a href="#" aria-label="Facebook"><img src="Photos/facebook.png" alt="Facebook" /></a>
+            <a href="#" aria-label="Instagram"><img src="Photos/instagram.png" alt="Instagram" /></a>
+            <a href="#" aria-label="YouTube"><img src="Photos/youtube.png" alt="YouTube" /></a>
+          </div>
+        </div>
+        <nav class="footer-nav-col" aria-label="Store navigation">
+          <strong class="footer-nav-heading">Store</strong>
+          <ul class="footer-nav-list">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="index.html#product-browser">Products</a></li>
+            <li><a href="basket.html">Basket</a></li>
+            <li><a href="favorites.html">Favorites</a></li>
+          </ul>
+        </nav>
+        <nav class="footer-nav-col" aria-label="Account navigation">
+          <strong class="footer-nav-heading">Account</strong>
+          <ul class="footer-nav-list">
+            <li><a href="profile.html">My profile</a></li>
+            <li><a href="profile.html#pending-orders-card">Orders</a></li>
+            <li><a href="profile.html#addresses-data-card">Addresses</a></li>
+            <li><a href="profile.html#invoice-data-card">Invoice data</a></li>
+          </ul>
+        </nav>
+      </div>
+      <div class="container footer-payments" aria-label="Secure payment methods">
+        <span class="footer-payments-label">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+          Secure payments
+        </span>
+        <div class="payment-strip">
+          <img src="Photos/visa.avif" alt="Visa" />
+          <img src="Photos/mastercard.avif" alt="Mastercard" />
+          <img src="Photos/paypal.avif" alt="PayPal" />
+          <img src="Photos/amex.avif" alt="American Express" />
+          <img src="Photos/maestro.avif" alt="Maestro" />
+          <img src="Photos/diners.avif" alt="Diners Club" />
+          <img src="Photos/visa-verify.avif" alt="Verified by Visa" />
+          <img src="Photos/securecode.avif" alt="Mastercard SecureCode" />
+          <img src="Photos/safekey.avif" alt="American Express SafeKey" />
+          <img src="Photos/symantec.avif" alt="Symantec" />
+        </div>
+      </div>
+      <div class="container footer-copyright">
+        <p>&copy; <span class="footer-year"></span> Bluehaven Store. All rights reserved.</p>
+        <nav class="footer-legal" aria-label="Legal links">
+          <a href="#">Privacy Policy</a>
+          <a href="#">Terms of Use</a>
+          <a href="#">Cookies</a>
+        </nav>
+      </div>
+    </footer>
 
     <script src="site.js?v=20260506b"></script>
     <script src="profile.js?v=20260506w"></script>

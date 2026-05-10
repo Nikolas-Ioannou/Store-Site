@@ -1,5 +1,6 @@
 const orderViewMessage = document.getElementById('order-view-message');
 const orderViewContent = document.getElementById('order-view-content');
+const orderViewHero = document.getElementById('order-view-hero');
 const orderViewTitle = document.getElementById('order-view-title');
 const orderViewStatusIcon = document.getElementById('order-view-status-icon');
 const orderViewStatusTitle = document.getElementById('order-view-status-title');
@@ -7,12 +8,15 @@ const orderViewStatusCopy = document.getElementById('order-view-status-copy');
 const orderViewDate = document.getElementById('order-view-date');
 const orderViewProductsCount = document.getElementById('order-view-products-count');
 const orderViewProducts = document.getElementById('order-view-products');
+const orderViewProductsFooter = document.getElementById('order-view-products-footer');
+const orderViewTotal = document.getElementById('order-view-total');
 const orderViewAddressLabel = document.getElementById('order-view-address-label');
 const orderViewAddress = document.getElementById('order-view-address');
 const orderViewPhone = document.getElementById('order-view-phone');
 const orderViewTracking = document.getElementById('order-view-tracking');
 const orderViewPayment = document.getElementById('order-view-payment');
 const orderViewMeta = document.getElementById('order-view-meta');
+const orderProgress = document.getElementById('order-progress');
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -73,6 +77,31 @@ function getOrderProgressCopy(order) {
   const fulfillmentStatus = String(order?.fulfillment_status || '').trim();
   const orderStatus = String(order?.status || '').trim();
   const paymentStatus = String(order?.payment_status || '').trim();
+  const installmentPlan = order?.installment_plan;
+
+  // Active installment plan takes priority over generic statuses
+  if (installmentPlan && installmentPlan.status === 'active') {
+    const isDelivered = fulfillmentStatus.toLowerCase().includes('deliver');
+    const paidCount = Number(installmentPlan.paid_count || 0);
+    const totalCount = Number(installmentPlan.installment_count || 1);
+    return {
+      badge: 'Installments Active',
+      detail: `Product delivered. ${paidCount} of ${totalCount} instalments paid.`,
+      iconSrc: 'Photos/order.png',
+      step: isDelivered ? 5 : 4,
+      tone: 'shipped',
+    };
+  }
+
+  if (installmentPlan && installmentPlan.status === 'completed') {
+    return {
+      badge: 'Instalments Complete',
+      detail: 'All instalments have been paid.',
+      iconSrc: 'Photos/order.png',
+      step: 5,
+      tone: 'delivered',
+    };
+  }
 
   if (fulfillmentStatus) {
     const normalized = fulfillmentStatus.toLowerCase();
@@ -82,6 +111,8 @@ function getOrderProgressCopy(order) {
         badge: 'Delivered',
         detail: 'Your order has been delivered.',
         iconSrc: 'Photos/delivery-truck.png',
+        step: 5,
+        tone: 'delivered',
       };
     }
 
@@ -90,6 +121,8 @@ function getOrderProgressCopy(order) {
         badge: 'On the way',
         detail: 'Your parcel is moving with the carrier.',
         iconSrc: 'Photos/delivery-truck.png',
+        step: 4,
+        tone: 'shipped',
       };
     }
 
@@ -98,6 +131,8 @@ function getOrderProgressCopy(order) {
         badge: 'Preparing',
         detail: 'Your order is being prepared for shipment.',
         iconSrc: 'Photos/box.png',
+        step: 3,
+        tone: 'preparing',
       };
     }
   }
@@ -107,6 +142,8 @@ function getOrderProgressCopy(order) {
       badge: 'Completed',
       detail: 'This order has been completed.',
       iconSrc: 'Photos/delivery-truck.png',
+      step: 5,
+      tone: 'delivered',
     };
   }
 
@@ -115,6 +152,8 @@ function getOrderProgressCopy(order) {
       badge: 'Confirmed',
       detail: 'Payment received. We are preparing your order.',
       iconSrc: 'Photos/box.png',
+      step: 2,
+      tone: 'confirmed',
     };
   }
 
@@ -122,6 +161,8 @@ function getOrderProgressCopy(order) {
     badge: 'Pending',
     detail: 'We received your order and are waiting for the next update.',
     iconSrc: 'Photos/box.png',
+    step: 1,
+    tone: 'pending',
   };
 }
 
@@ -132,6 +173,26 @@ function formatOrderAddress(address) {
 
   const cityLine = [address.postal_code, address.city].filter(Boolean).join(' ');
   return [address.recipient_name, address.line_1, address.line_2, cityLine, address.region, address.country_code].filter(Boolean).join(', ');
+}
+
+function formatOrderAddressHtml(address) {
+  if (!address) {
+    return '<em class="order-addr-empty">No shipping address saved yet</em>';
+  }
+
+  const lines = [
+    address.label ? `<span class="order-addr-label">${escapeHtml(address.label)}</span>` : null,
+    address.recipient_name ? `<strong>${escapeHtml(address.recipient_name)}</strong>` : null,
+    address.line_1 ? `<span>${escapeHtml(address.line_1)}</span>` : null,
+    address.line_2 ? `<span>${escapeHtml(address.line_2)}</span>` : null,
+    (address.postal_code || address.city)
+      ? `<span>${escapeHtml([address.postal_code, address.city].filter(Boolean).join(' '))}</span>`
+      : null,
+    address.region ? `<span>${escapeHtml(address.region)}</span>` : null,
+    address.country_code ? `<span>${escapeHtml(address.country_code)}</span>` : null,
+  ].filter(Boolean);
+
+  return lines.length ? lines.join('') : '<em class="order-addr-empty">No shipping address saved yet</em>';
 }
 
 function getPrimaryShipment(order) {
@@ -158,40 +219,98 @@ function renderOrder(order) {
   const shipment = getPrimaryShipment(order);
   const paymentLabel = [order?.payment_provider, toTitleCase(order?.payment_status || '')].filter(Boolean).join(' / ');
   const items = Array.isArray(order?.items) ? order.items : [];
+  const currency = order.currency_code || 'EUR';
 
+  // Hero
   orderViewTitle.textContent = order.order_number || 'Order details';
   orderViewStatusIcon.src = progress.iconSrc;
   orderViewStatusTitle.textContent = progress.badge;
   orderViewStatusCopy.textContent = progress.detail;
-  orderViewDate.textContent = order.placed_at || 'No date yet';
+  if (orderViewDate) {
+    orderViewDate.textContent = order.placed_at || '';
+    orderViewDate.setAttribute('datetime', order.placed_at || '');
+  }
+  if (orderViewHero) {
+    orderViewHero.dataset.tone = progress.tone;
+  }
+
+  // Progress stepper
+  if (orderProgress) {
+    orderProgress.querySelectorAll('.order-progress-step').forEach((step) => {
+      const stepMap = { placed: 1, payment: 2, preparing: 3, shipped: 4, delivered: 5 };
+      const stepNum = stepMap[step.dataset.step] || 0;
+      step.classList.remove('is-done', 'is-active');
+      if (stepNum < progress.step) {
+        step.classList.add('is-done');
+      } else if (stepNum === progress.step) {
+        step.classList.add('is-active');
+      }
+    });
+  }
+
+  // Products
   orderViewProductsCount.textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
   orderViewProducts.innerHTML = items.length
     ? items
         .map(
-          (item) => `
+          (item, index) => `
             <article class="order-view-product-row">
-              <div>
+              <div class="order-product-index">${index + 1}</div>
+              <div class="order-product-info">
                 <strong>${escapeHtml(item.product_name || item.sku || 'Product')}</strong>
-                <small>${escapeHtml(item.sku || 'No SKU')} / Qty ${Number(item.quantity || 0)}</small>
+                <small>
+                  ${item.sku ? `<span>SKU&nbsp;${escapeHtml(item.sku)}</span>` : ''}
+                  <span>Qty&nbsp;<strong>${Number(item.quantity || 0)}</strong></span>
+                  ${item.unit_price ? `<span>@ ${escapeHtml(formatCurrency(item.unit_price, currency))}</span>` : ''}
+                </small>
               </div>
-              <strong>${escapeHtml(formatCurrency(item.line_total || item.unit_price || 0, order.currency_code || 'EUR'))}</strong>
+              <strong class="order-product-total">${escapeHtml(formatCurrency(item.line_total || item.unit_price || 0, currency))}</strong>
             </article>
           `,
         )
         .join('')
     : '<p class="order-detail-copy">No products available yet.</p>';
+
+  if (order.total_amount) {
+    orderViewTotal.textContent = formatCurrency(order.total_amount, currency);
+    orderViewProductsFooter.hidden = false;
+  }
+
+  // Address
   orderViewAddressLabel.textContent = shippingAddress?.label || 'Saved address';
-  orderViewAddress.textContent = formatOrderAddress(shippingAddress);
+  orderViewAddress.innerHTML = formatOrderAddressHtml(shippingAddress);
+
+  // Contact & tracking
   orderViewPhone.textContent = order.customer_phone || 'No phone saved';
-  orderViewTracking.textContent = shipment?.tracking_number
-    ? [shipment.carrier_name || 'Carrier', shipment.tracking_number].filter(Boolean).join(' / ')
-    : 'Tracking number will appear here when the carrier updates the parcel.';
+  const trackingItems = [
+    order.customer_phone ? { label: 'Phone', value: order.customer_phone } : null,
+    shipment?.carrier_name ? { label: 'Carrier', value: shipment.carrier_name } : null,
+    shipment?.tracking_number ? { label: 'Tracking no.', value: shipment.tracking_number } : null,
+    shipment?.shipped_at ? { label: 'Shipped', value: shipment.shipped_at } : null,
+    shipment?.delivered_at ? { label: 'Delivered', value: shipment.delivered_at } : null,
+  ].filter(Boolean);
+
+  orderViewTracking.innerHTML = trackingItems.length
+    ? trackingItems
+        .map(
+          (item) => `
+            <li>
+              <span>${escapeHtml(item.label)}</span>
+              <strong>${escapeHtml(item.value)}</strong>
+            </li>
+          `,
+        )
+        .join('')
+    : '<li class="order-meta-empty"><span>Tracking info will appear here when the carrier updates the parcel.</span></li>';
+
+  // Payment & status
   orderViewPayment.textContent = paymentLabel || 'Payment update pending';
   orderViewMeta.innerHTML = [
-    { label: 'Total cost', value: formatCurrency(order.total_amount || 0, order.currency_code || 'EUR') },
     { label: 'Order status', value: toTitleCase(order.status || order.order_status || 'Pending') },
+    { label: 'Payment', value: toTitleCase(order.payment_status || 'Pending') },
     { label: 'Fulfillment', value: toTitleCase(order.fulfillment_status || 'Unfulfilled') },
     { label: 'Shipment', value: toTitleCase(shipment?.status || order.shipment_status || 'Pending') },
+    { label: 'Total', value: formatCurrency(order.total_amount || 0, currency) },
   ]
     .map(
       (item) => `
@@ -202,6 +321,7 @@ function renderOrder(order) {
       `,
     )
     .join('');
+
   orderViewContent.hidden = false;
 }
 

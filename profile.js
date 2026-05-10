@@ -27,7 +27,10 @@ const accountOrdersCompletedList = document.getElementById('account-orders-compl
 const accountProfileSummary = document.getElementById('account-profile-summary');
 const accountAddressSummary = document.getElementById('account-address-summary');
 const accountInvoiceSummary = document.getElementById('account-invoice-summary');
-const accountInstallmentsList = document.getElementById('account-installments-list');
+const accountInstallmentsPendingList = document.getElementById('account-installments-pending-list');
+const accountInstallmentsCompletedList = document.getElementById('account-installments-completed-list');
+const installmentsPendingPagination = document.getElementById('installments-pending-pagination');
+const installmentsCompletedPagination = document.getElementById('installments-completed-pagination');
 const accountCouponsList = document.getElementById('account-coupons-list');
 const accountFavoritesList = document.getElementById('account-favorites-list');
 const favoritesResultsSummary = document.getElementById('favorites-results-summary');
@@ -37,6 +40,7 @@ const favoritesPagination = document.getElementById('favorites-pagination');
 const ordersSearchInput = document.getElementById('orders-search-input');
 const ordersDateFilter = document.getElementById('orders-date-filter');
 const ordersPendingPagination = document.getElementById('orders-pending-pagination');
+const ordersCompletedPagination = document.getElementById('orders-completed-pagination');
 const personalEditButton = document.getElementById('personal-edit-button');
 const personalFormCard = document.getElementById('personal-form-card');
 const personalForm = document.getElementById('inline-personal-form');
@@ -57,12 +61,15 @@ const profileMenuToggle = document.querySelector('[data-profile-toggle="true"]')
 const profileSubNav = document.getElementById('profile-sub-nav');
 const ordersMenuToggle = document.querySelector('[data-orders-toggle="true"]');
 const ordersSubNav = document.getElementById('orders-sub-nav');
+const installmentsMenuToggle = document.querySelector('[data-installments-toggle="true"]');
+const installmentsSubNav = document.getElementById('installments-sub-nav');
 const accountSections = Array.from(document.querySelectorAll('.account-hub-main > section[id]'));
 const accountAvatar = document.querySelector('.account-avatar');
 const storeSite = window.StoreSite || null;
 
 const profileSectionIds = ['personal-data-card', 'invoice-data-card', 'addresses-data-card'];
 const orderSectionIds = ['pending-orders-card', 'completed-orders-card'];
+const installmentSectionIds = ['installments-pending-card', 'installments-completed-card'];
 
 let currentUser = null;
 let productsCatalog = null;
@@ -74,14 +81,24 @@ const favoritesState = {
   query: '',
   category: 'all',
   page: 1,
-  pageSize: 4,
+  pageSize: 20,
 };
 const ordersState = {
   items: [],
   pendingPage: 1,
-  pendingPageSize: 4,
+  pendingPageSize: 20,
+  completedPage: 1,
+  completedPageSize: 20,
   completedQuery: '',
   completedDateWindowDays: 'all',
+};
+
+const installmentsState = {
+  items: [],
+  pendingPage: 1,
+  pendingPageSize: 20,
+  completedPage: 1,
+  completedPageSize: 20,
 };
 
 function renderPendingOrdersPagination(totalItems) {
@@ -130,6 +147,94 @@ function renderPendingOrdersPagination(totalItems) {
   });
 }
 
+function renderCompletedOrdersPagination(totalItems) {
+  if (!ordersCompletedPagination) {
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / ordersState.completedPageSize));
+  ordersState.completedPage = Math.min(ordersState.completedPage, totalPages);
+  ordersCompletedPagination.hidden = totalItems === 0 || totalPages === 1;
+
+  if (ordersCompletedPagination.hidden) {
+    ordersCompletedPagination.innerHTML = '';
+    return;
+  }
+
+  const buttons = [];
+  buttons.push(`
+    <button class="button button-secondary" type="button" data-completed-page-nav="prev" ${ordersState.completedPage === 1 ? 'disabled' : ''}>Previous</button>
+  `);
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+    buttons.push(`
+      <button class="${pageNumber === ordersState.completedPage ? 'button button-primary' : 'button button-secondary'}" type="button" data-completed-page-number="${pageNumber}">${pageNumber}</button>
+    `);
+  }
+
+  buttons.push(`
+    <button class="button button-secondary" type="button" data-completed-page-nav="next" ${ordersState.completedPage === totalPages ? 'disabled' : ''}>Next</button>
+  `);
+
+  ordersCompletedPagination.innerHTML = buttons.join('');
+
+  ordersCompletedPagination.querySelectorAll('[data-completed-page-number]').forEach((button) => {
+    button.addEventListener('click', () => {
+      ordersState.completedPage = Number(button.dataset.completedPageNumber);
+      renderOrders(ordersState.items);
+    });
+  });
+
+  ordersCompletedPagination.querySelectorAll('[data-completed-page-nav]').forEach((button) => {
+    button.addEventListener('click', () => {
+      ordersState.completedPage += button.dataset.completedPageNav === 'next' ? 1 : -1;
+      renderOrders(ordersState.items);
+    });
+  });
+}
+
+function renderInstallmentsPendingPagination(totalItems) {
+  if (!installmentsPendingPagination) return;
+  const totalPages = Math.max(1, Math.ceil(totalItems / installmentsState.pendingPageSize));
+  installmentsState.pendingPage = Math.min(installmentsState.pendingPage, totalPages);
+  installmentsPendingPagination.hidden = totalItems === 0 || totalPages === 1;
+  if (installmentsPendingPagination.hidden) { installmentsPendingPagination.innerHTML = ''; return; }
+  const buttons = [];
+  buttons.push(`<button class="button button-secondary" type="button" data-inst-pending-nav="prev" ${installmentsState.pendingPage === 1 ? 'disabled' : ''}>Previous</button>`);
+  for (let p = 1; p <= totalPages; p++) {
+    buttons.push(`<button class="${p === installmentsState.pendingPage ? 'button button-primary' : 'button button-secondary'}" type="button" data-inst-pending-page="${p}">${p}</button>`);
+  }
+  buttons.push(`<button class="button button-secondary" type="button" data-inst-pending-nav="next" ${installmentsState.pendingPage === totalPages ? 'disabled' : ''}>Next</button>`);
+  installmentsPendingPagination.innerHTML = buttons.join('');
+  installmentsPendingPagination.querySelectorAll('[data-inst-pending-page]').forEach((btn) => {
+    btn.addEventListener('click', () => { installmentsState.pendingPage = Number(btn.dataset.instPendingPage); renderInstallmentPurchases(); });
+  });
+  installmentsPendingPagination.querySelectorAll('[data-inst-pending-nav]').forEach((btn) => {
+    btn.addEventListener('click', () => { installmentsState.pendingPage += btn.dataset.instPendingNav === 'next' ? 1 : -1; renderInstallmentPurchases(); });
+  });
+}
+
+function renderInstallmentsCompletedPagination(totalItems) {
+  if (!installmentsCompletedPagination) return;
+  const totalPages = Math.max(1, Math.ceil(totalItems / installmentsState.completedPageSize));
+  installmentsState.completedPage = Math.min(installmentsState.completedPage, totalPages);
+  installmentsCompletedPagination.hidden = totalItems === 0 || totalPages === 1;
+  if (installmentsCompletedPagination.hidden) { installmentsCompletedPagination.innerHTML = ''; return; }
+  const buttons = [];
+  buttons.push(`<button class="button button-secondary" type="button" data-inst-completed-nav="prev" ${installmentsState.completedPage === 1 ? 'disabled' : ''}>Previous</button>`);
+  for (let p = 1; p <= totalPages; p++) {
+    buttons.push(`<button class="${p === installmentsState.completedPage ? 'button button-primary' : 'button button-secondary'}" type="button" data-inst-completed-page="${p}">${p}</button>`);
+  }
+  buttons.push(`<button class="button button-secondary" type="button" data-inst-completed-nav="next" ${installmentsState.completedPage === totalPages ? 'disabled' : ''}>Next</button>`);
+  installmentsCompletedPagination.innerHTML = buttons.join('');
+  installmentsCompletedPagination.querySelectorAll('[data-inst-completed-page]').forEach((btn) => {
+    btn.addEventListener('click', () => { installmentsState.completedPage = Number(btn.dataset.instCompletedPage); renderInstallmentPurchases(); });
+  });
+  installmentsCompletedPagination.querySelectorAll('[data-inst-completed-nav]').forEach((btn) => {
+    btn.addEventListener('click', () => { installmentsState.completedPage += btn.dataset.instCompletedNav === 'next' ? 1 : -1; renderInstallmentPurchases(); });
+  });
+}
+
 function syncProfileNavigation(sectionId) {
   const profileActive = profileSectionIds.includes(sectionId);
 
@@ -162,6 +267,19 @@ function syncOrderNavigation(sectionId) {
   }
 }
 
+function syncInstallmentsNavigation(sectionId) {
+  const installmentsActive = installmentSectionIds.includes(sectionId);
+
+  if (installmentsMenuToggle) {
+    installmentsMenuToggle.classList.toggle('is-active', installmentsActive);
+    installmentsMenuToggle.setAttribute('aria-expanded', String(installmentsActive));
+  }
+
+  if (installmentsSubNav) {
+    installmentsSubNav.hidden = !installmentsActive;
+  }
+}
+
 function setActiveAccountSection(sectionId = 'personal-data-card') {
   accountSections.forEach((section) => {
     section.hidden = section.id !== sectionId;
@@ -175,6 +293,7 @@ function setActiveAccountSection(sectionId = 'personal-data-card') {
 
   syncProfileNavigation(sectionId);
   syncOrderNavigation(sectionId);
+  syncInstallmentsNavigation(sectionId);
 
   if (window.location.hash !== `#${sectionId}`) {
     window.history.replaceState(null, '', `#${sectionId}`);
@@ -308,6 +427,23 @@ function getOrderProgressCopy(order) {
   const fulfillmentStatus = String(order?.fulfillment_status || '').trim();
   const orderStatus = String(order?.status || '').trim();
   const paymentStatus = String(order?.payment_status || '').trim();
+  const installmentPlan = order?.installment_plan;
+
+  if (installmentPlan && installmentPlan.status === 'active') {
+    const paidCount = Number(installmentPlan.paid_count || 0);
+    const totalCount = Number(installmentPlan.installment_count || 1);
+    return {
+      badge: 'Instalments Active',
+      detail: `${paidCount} of ${totalCount} instalments paid.`,
+    };
+  }
+
+  if (installmentPlan && installmentPlan.status === 'completed') {
+    return {
+      badge: 'Instalments Complete',
+      detail: 'All instalments paid.',
+    };
+  }
 
   if (fulfillmentStatus) {
     const normalized = fulfillmentStatus.toLowerCase();
@@ -397,6 +533,26 @@ function formatOrderAddress(address) {
   return [address.recipient_name, address.line_1, address.line_2, cityLine, address.region, address.country_code].filter(Boolean).join(', ');
 }
 
+function renderOrderAddressHtml(address) {
+  if (!address) {
+    return '<span class="order-addr-empty">No shipping address saved</span>';
+  }
+
+  const lines = [
+    address.label ? `<span class="order-addr-label">${escapeHtml(address.label)}</span>` : null,
+    address.recipient_name ? `<span class="order-addr-name">${escapeHtml(address.recipient_name)}</span>` : null,
+    address.line_1 ? `<span>${escapeHtml(address.line_1)}</span>` : null,
+    address.line_2 ? `<span>${escapeHtml(address.line_2)}</span>` : null,
+    (address.postal_code || address.city)
+      ? `<span>${escapeHtml([address.postal_code, address.city].filter(Boolean).join(' '))}</span>`
+      : null,
+    address.region ? `<span>${escapeHtml(address.region)}</span>` : null,
+    address.country_code ? `<span>${escapeHtml(address.country_code)}</span>` : null,
+  ].filter(Boolean);
+
+  return lines.length ? lines.join('') : '<span class="order-addr-empty">No shipping address saved</span>';
+}
+
 function renderOrderProducts(order) {
   const items = Array.isArray(order?.items) ? order.items : [];
   if (items.length === 0) {
@@ -463,8 +619,8 @@ function renderOrderSummaryCard(order) {
           <strong>${escapeHtml(getOrderItemNames(order))}</strong>
         </div>
         <div class="order-summary-section">
-          <span>Address</span>
-          <strong>${escapeHtml(formatOrderAddress(shippingAddress))}</strong>
+          <span>Ship to</span>
+          <address class="order-summary-addr">${renderOrderAddressHtml(shippingAddress)}</address>
         </div>
         <div class="order-summary-section">
           <span>Contact</span>
@@ -511,11 +667,19 @@ function renderOrders(orders = []) {
   ordersState.items = Array.isArray(orders) ? orders.slice() : [];
 
   const pendingOrders = ordersState.items.filter((order) => !isCompletedOrder(order));
-  const completedOrders = getFilteredCompletedOrders(ordersState.items.filter((order) => isCompletedOrder(order)));
+  const allCompletedOrders = getFilteredCompletedOrders(ordersState.items.filter((order) => isCompletedOrder(order)));
+
+  // Pending pagination
   const totalPendingPages = Math.max(1, Math.ceil(pendingOrders.length / ordersState.pendingPageSize));
   ordersState.pendingPage = Math.min(ordersState.pendingPage, totalPendingPages);
   const pendingStartIndex = (ordersState.pendingPage - 1) * ordersState.pendingPageSize;
   const visiblePendingOrders = pendingOrders.slice(pendingStartIndex, pendingStartIndex + ordersState.pendingPageSize);
+
+  // Completed pagination
+  const totalCompletedPages = Math.max(1, Math.ceil(allCompletedOrders.length / ordersState.completedPageSize));
+  ordersState.completedPage = Math.min(ordersState.completedPage, totalCompletedPages);
+  const completedStartIndex = (ordersState.completedPage - 1) * ordersState.completedPageSize;
+  const visibleCompletedOrders = allCompletedOrders.slice(completedStartIndex, completedStartIndex + ordersState.completedPageSize);
 
   accountOrdersPendingList.innerHTML = '';
   accountOrdersCompletedList.innerHTML = '';
@@ -524,67 +688,201 @@ function renderOrders(orders = []) {
     accountOrdersPendingList.innerHTML = '<p class="account-empty">No pending orders</p>';
     accountOrdersCompletedList.innerHTML = '<p class="account-empty">No completed orders</p>';
     renderPendingOrdersPagination(0);
+    renderCompletedOrdersPagination(0);
     return;
   }
 
   if (pendingOrders.length === 0) {
     accountOrdersPendingList.innerHTML = '<p class="account-empty">No pending orders</p>';
     renderPendingOrdersPagination(0);
+  } else {
+    accountOrdersPendingList.innerHTML = visiblePendingOrders.map((order) => renderOrderSummaryCard(order)).join('');
+    bindOrderSummaryLinks(accountOrdersPendingList);
+    renderPendingOrdersPagination(pendingOrders.length);
   }
 
-  accountOrdersPendingList.innerHTML = visiblePendingOrders.map((order) => renderOrderSummaryCard(order)).join('');
-  bindOrderSummaryLinks(accountOrdersPendingList);
-
-  renderPendingOrdersPagination(pendingOrders.length);
-
-  if (completedOrders.length === 0) {
+  if (allCompletedOrders.length === 0) {
     accountOrdersCompletedList.innerHTML = '<p class="account-empty">No completed orders match the current filters</p>';
+    renderCompletedOrdersPagination(0);
     return;
   }
 
-  accountOrdersCompletedList.innerHTML = completedOrders.map((order) => renderOrderSummaryCard(order)).join('');
+  accountOrdersCompletedList.innerHTML = visibleCompletedOrders.map((order) => renderOrderSummaryCard(order)).join('');
   bindOrderSummaryLinks(accountOrdersCompletedList);
+  renderCompletedOrdersPagination(allCompletedOrders.length);
 }
 
-function renderInstallmentPurchases(orders = []) {
-  if (!accountInstallmentsList) {
+function renderInstallmentPurchases() {
+  if (!accountInstallmentsPendingList && !accountInstallmentsCompletedList) {
     return;
   }
 
-  const installmentOrders = orders.filter((order) => {
-    const paymentStatus = String(order.payment_status || '').toLowerCase();
-    const status = String(order.status || '').toLowerCase();
-    return paymentStatus.includes('install') || paymentStatus.includes('partial') || status.includes('install');
+  const userId = getActiveUserId();
+  if (!userId) {
+    if (accountInstallmentsPendingList) accountInstallmentsPendingList.innerHTML = '<p class="account-empty">No pending installments</p>';
+    if (accountInstallmentsCompletedList) accountInstallmentsCompletedList.innerHTML = '<p class="account-empty">No completed installments</p>';
+    return;
+  }
+
+  fetch(`/api/installments?user_id=${encodeURIComponent(userId)}`)
+    .then((r) => r.json())
+    .then((data) => {
+      const all = Array.isArray(data.items) ? data.items : [];
+      installmentsState.items = all;
+
+      // Pending = active, sorted soonest next_due_date first
+      const pending = all
+        .filter((p) => p.status === 'active')
+        .sort((a, b) => {
+          if (!a.next_due_date) return 1;
+          if (!b.next_due_date) return -1;
+          return a.next_due_date < b.next_due_date ? -1 : 1;
+        });
+
+      // Completed = everything else (completed / defaulted / cancelled)
+      const completed = all.filter((p) => p.status !== 'active');
+
+      // ── Render pending ───────────────────────────────────────────────
+      if (accountInstallmentsPendingList) {
+        if (pending.length === 0) {
+          accountInstallmentsPendingList.innerHTML = '<p class="account-empty">No pending installments</p>';
+          if (installmentsPendingPagination) { installmentsPendingPagination.hidden = true; installmentsPendingPagination.innerHTML = ''; }
+        } else {
+          const start = (installmentsState.pendingPage - 1) * installmentsState.pendingPageSize;
+          const page = pending.slice(start, start + installmentsState.pendingPageSize);
+          accountInstallmentsPendingList.innerHTML = page.map((plan) => renderInstallmentCard(plan)).join('');
+          bindInstallmentPayButtons(accountInstallmentsPendingList);
+          renderInstallmentsPendingPagination(pending.length);
+        }
+      }
+
+      // ── Render completed ─────────────────────────────────────────────
+      if (accountInstallmentsCompletedList) {
+        if (completed.length === 0) {
+          accountInstallmentsCompletedList.innerHTML = '<p class="account-empty">No completed installments</p>';
+          if (installmentsCompletedPagination) { installmentsCompletedPagination.hidden = true; installmentsCompletedPagination.innerHTML = ''; }
+        } else {
+          const start = (installmentsState.completedPage - 1) * installmentsState.completedPageSize;
+          const page = completed.slice(start, start + installmentsState.completedPageSize);
+          accountInstallmentsCompletedList.innerHTML = page.map((plan) => renderInstallmentCard(plan)).join('');
+          renderInstallmentsCompletedPagination(completed.length);
+        }
+      }
+    })
+    .catch(() => {
+      if (accountInstallmentsPendingList) accountInstallmentsPendingList.innerHTML = '<p class="account-empty">Could not load installments</p>';
+      if (accountInstallmentsCompletedList) accountInstallmentsCompletedList.innerHTML = '';
+    });
+}
+
+function renderInstallmentCard(plan) {
+  const paidCount = Number(plan.paid_count || 0);
+  const total = Number(plan.installment_count || 1);
+  const remaining = total - paidCount;
+  const amount = Number(plan.installment_amount || 0);
+  const currency = escapeHtml(plan.currency_code || 'EUR');
+  const isActive = plan.status === 'active';
+  const progressPct = Math.round((paidCount / total) * 100);
+
+  const statusLabel = { active: 'Active', completed: 'Completed', defaulted: 'Defaulted', cancelled: 'Cancelled' }[plan.status] || escapeHtml(plan.status);
+  const statusClass = { active: 'installment-badge--active', completed: 'installment-badge--done', defaulted: 'installment-badge--warn', cancelled: 'installment-badge--warn' }[plan.status] || '';
+
+  const productList = Array.isArray(plan.order_items)
+    ? plan.order_items.map((item) => `<span class="installment-product-tag">${escapeHtml(item.product_name)} ×${item.quantity}</span>`).join('')
+    : '';
+
+  const paymentsRows = Array.isArray(plan.payments)
+    ? plan.payments.map((p) => {
+        const isPaid = p.status === 'paid';
+        const paidOn = isPaid && p.paid_at ? p.paid_at.slice(0, 10) : null;
+        return `
+        <li class="installment-schedule-row ${isPaid ? 'is-paid' : ''}">
+          <span class="installment-schedule-num">#${p.installment_number}</span>
+          <span class="installment-schedule-amount">${formatCurrency(p.amount, plan.currency_code)}</span>
+          <span class="installment-schedule-date">${escapeHtml(p.due_date || '—')}</span>
+          <span class="installment-schedule-status">
+            ${isPaid ? `<span class="inst-paid-check">✓ Paid</span>${paidOn ? `<span class="inst-paid-on">on ${escapeHtml(paidOn)}</span>` : ''}` : escapeHtml(p.status)}
+          </span>
+        </li>`;
+      }).join('')
+    : '';
+
+  return `
+  <article class="installment-plan-card installment-plan-card--link" data-plan-id="${plan.id}" data-order-href="order.html?orderId=${encodeURIComponent(plan.order_id)}" role="link" tabindex="0">
+    <div class="installment-plan-head">
+      <div class="installment-plan-title">
+        <strong class="installment-order-ref">Order ${escapeHtml(plan.order_number)}</strong>
+        <span class="installment-badge ${statusClass}">${statusLabel}</span>
+      </div>
+    </div>
+    <div class="installment-products">${productList}</div>
+    <div class="installment-progress-block">
+      <div class="installment-progress-labels">
+        <span><strong>${paidCount}</strong> of <strong>${total}</strong> paid</span>
+        <span>${remaining > 0 ? `${remaining} remaining` : 'All paid'}</span>
+      </div>
+      <div class="installment-progress-track" role="progressbar" aria-valuenow="${progressPct}" aria-valuemin="0" aria-valuemax="100">
+        <div class="installment-progress-fill" style="width:${progressPct}%"></div>
+      </div>
+      <div class="installment-amount-line">
+        ${formatCurrency(amount, plan.currency_code)} per installment
+        · Total: ${formatCurrency(plan.total_amount, plan.currency_code)}
+        ${isActive && plan.next_due_date ? `· Next due: <strong>${escapeHtml(plan.next_due_date)}</strong>` : ''}
+      </div>
+    </div>
+    <details class="installment-schedule" onclick="event.stopPropagation()">
+      <summary class="installment-schedule-toggle">Payment schedule</summary>
+      <ul class="installment-schedule-list">${paymentsRows}</ul>
+    </details>
+    ${isActive && remaining > 0 ? `
+    <div class="installment-actions">
+      <button class="button installment-pay-btn" data-plan-id="${plan.id}" data-amount="${amount}" data-currency="${currency}">
+        Pay next installment — ${formatCurrency(amount, plan.currency_code)}
+      </button>
+    </div>` : ''}
+  </article>`;
+}
+
+function bindInstallmentPayButtons(container) {
+  // Make the whole card navigate to the order (except interactive children)
+  container.querySelectorAll('.installment-plan-card--link').forEach((card) => {
+    const href = card.dataset.orderHref;
+    if (!href) return;
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button, a, details, summary')) return;
+      window.location.href = href;
+    });
+    card.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('button, a, details, summary')) {
+        window.location.href = href;
+      }
+    });
   });
 
-  if (installmentOrders.length === 0) {
-    accountInstallmentsList.innerHTML = '<p class="account-empty">No installment purchases found</p>';
-    return;
-  }
+  container.querySelectorAll('.installment-pay-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const planId = btn.dataset.planId;
+      btn.disabled = true;
+      btn.textContent = 'Processing…';
 
-  accountInstallmentsList.innerHTML = installmentOrders
-    .slice(0, 5)
-    .map(
-      (order) => {
-        const progress = getOrderProgressCopy(order);
-        return `
-        <article class="order-line">
-          <div>
-            <strong>${escapeHtml(order.order_number)}</strong>
-            <div class="record-pills">
-              <span class="record-pill">${escapeHtml(progress.badge)}</span>
-            </div>
-            <small>${escapeHtml(progress.detail)}</small>
-          </div>
-          <div>
-            <span>${Number(order.total_amount || 0).toFixed(2)} ${escapeHtml(order.currency_code || 'EUR')}</span>
-            <small>${escapeHtml(order.placed_at || 'No date yet')}</small>
-          </div>
-        </article>
-      `;
-      },
-    )
-    .join('');
+      fetch(`/api/installments/${planId}/pay`, { method: 'POST' })
+        .then((r) => r.json())
+        .then((res) => {
+          if (res.error) {
+            btn.disabled = false;
+            btn.textContent = `Pay next installment — ${formatCurrency(btn.dataset.amount, btn.dataset.currency)}`;
+            alert(res.error);
+            return;
+          }
+          renderInstallmentPurchases();
+        })
+        .catch(() => {
+          btn.disabled = false;
+          btn.textContent = `Pay next installment — ${formatCurrency(btn.dataset.amount, btn.dataset.currency)}`;
+        });
+    });
+  });
 }
 
 function renderCoupons() {
@@ -592,14 +890,72 @@ function renderCoupons() {
     return;
   }
 
-  accountCouponsList.innerHTML = `
-    <article class="summary-record-card">
-      <div class="summary-record-head">
-        <strong>No active coupons</strong>
-      </div>
-      <p>Your account does not have any saved coupon codes yet.</p>
-    </article>
-  `;
+  const userId = getActiveUserId();
+  if (!userId) {
+    accountCouponsList.innerHTML = '<p class="account-empty">No coupons available yet</p>';
+    return;
+  }
+
+  fetch(`/api/coupons?user_id=${encodeURIComponent(userId)}`)
+    .then((r) => r.json())
+    .then((data) => {
+      const coupons = (Array.isArray(data.items) ? data.items : []).filter((c) => !c.used_at);
+      if (coupons.length === 0) {
+        accountCouponsList.innerHTML = '<p class="account-empty">No coupons available yet</p>';
+        return;
+      }
+
+      accountCouponsList.innerHTML = coupons.map((c) => {
+        const isExpired = c.valid_until && c.valid_until < new Date().toISOString().slice(0, 10);
+        const isInactive = !c.is_active || isExpired;
+
+        const stateClass = isInactive ? 'coupon-card--expired' : 'coupon-card--active';
+        const stateLabel = isExpired ? 'Expired' : !c.is_active ? 'Inactive' : 'Active';
+        const stateBadgeClass = isInactive ? 'coupon-badge--expired' : 'coupon-badge--active';
+
+        const discountDisplay = c.discount_type === 'percent'
+          ? `${Number(c.discount_value)}% off`
+          : `${formatCurrency(c.discount_value, c.currency_code)} off`;
+
+        const minOrder = c.min_order_amount
+          ? `Min. order ${formatCurrency(c.min_order_amount, c.currency_code)}`
+          : 'No minimum order';
+
+        const validUntil = c.valid_until ? `Valid until ${escapeHtml(c.valid_until)}` : 'No expiry';
+
+        return `
+        <article class="coupon-card ${stateClass}">
+          <div class="coupon-discount-strip">
+            <span class="coupon-discount-value">${discountDisplay}</span>
+            <span class="coupon-badge ${stateBadgeClass}">${stateLabel}</span>
+          </div>
+          <div class="coupon-body">
+            <div class="coupon-code-row">
+              <span class="coupon-code">${escapeHtml(c.code)}</span>
+              ${!isInactive ? `<button class="coupon-copy-btn" data-code="${escapeHtml(c.code)}" title="Copy code">Copy</button>` : ''}
+            </div>
+            <p class="coupon-description">${escapeHtml(c.description || '')}</p>
+            <ul class="coupon-meta-list">
+              <li>${minOrder}</li>
+              <li>${validUntil}</li>
+            </ul>
+          </div>
+        </article>`;
+      }).join('');
+
+      accountCouponsList.querySelectorAll('.coupon-copy-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          navigator.clipboard.writeText(btn.dataset.code).then(() => {
+            const original = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = original; }, 1800);
+          });
+        });
+      });
+    })
+    .catch(() => {
+      accountCouponsList.innerHTML = '<p class="account-empty">Could not load coupons</p>';
+    });
 }
 
 function formatCurrency(value, currencyCode = 'EUR') {
@@ -1206,7 +1562,7 @@ function applyUserDetails(userPayload) {
 
   const orders = Array.isArray(userPayload.orders) ? userPayload.orders : [];
   renderOrders(orders);
-  renderInstallmentPurchases(orders);
+  renderInstallmentPurchases();
   renderCoupons();
   void refreshFavorites();
   renderSummaryRows(
@@ -1335,7 +1691,7 @@ function renderLoggedIn(sessionPayload) {
     })
     .catch(() => {
       renderOrders([]);
-      renderInstallmentPurchases([]);
+      renderInstallmentPurchases();
       renderCoupons();
       renderFavorites([]);
     });
@@ -1563,15 +1919,43 @@ if (showRegisterButton) {
 }
 
 if (introSignupButton) {
-  introSignupButton.addEventListener('click', () => setAuthMode('register'));
+  introSignupButton.addEventListener('click', () => {
+    setAuthMode('register');
+    document.getElementById('auth-forms-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
 }
+
+// Invoice details toggle
+const invoiceToggle = document.getElementById('invoice-toggle');
+const invoiceDetails = document.getElementById('invoice-details');
+if (invoiceToggle && invoiceDetails) {
+  invoiceToggle.addEventListener('change', () => {
+    invoiceDetails.hidden = !invoiceToggle.checked;
+  });
+}
+
+// Password visibility toggles
+document.querySelectorAll('.auth-pw-toggle').forEach((toggle) => {
+  toggle.addEventListener('click', () => {
+    const wrap = toggle.closest('.auth-input-wrap');
+    const input = wrap?.querySelector('input[type="password"], input[type="text"]');
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    toggle.style.color = isHidden ? 'var(--primary)' : '';
+  });
+});
 
 if (loginSignupButton) {
   loginSignupButton.addEventListener('click', () => setAuthMode('register'));
 }
 
 if (registerLoginButton) {
-  registerLoginButton.addEventListener('click', () => setAuthMode('login'));
+  registerLoginButton.addEventListener('click', () => {
+    setAuthMode('login');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 }
 
 if (registerForm) {
@@ -1609,14 +1993,22 @@ if (invoiceCancelButton) {
 accountSideLinks.forEach((link) => {
   link.addEventListener('click', (event) => {
     event.preventDefault();
-    setActiveAccountSection(link.dataset.section || 'personal-data-card');
+    const sectionId = link.dataset.section || 'personal-data-card';
+    setActiveAccountSection(sectionId);
+    if (sectionId === 'coupons-card') {
+      renderCoupons();
+    }
   });
 });
 
 accountSubLinks.forEach((link) => {
   link.addEventListener('click', (event) => {
     event.preventDefault();
-    setActiveAccountSection(link.dataset.section || 'personal-data-card');
+    const sectionId = link.dataset.section || 'personal-data-card';
+    setActiveAccountSection(sectionId);
+    if (sectionId === 'installments-pending-card' || sectionId === 'installments-completed-card') {
+      renderInstallmentPurchases();
+    }
   });
 });
 
@@ -1629,6 +2021,12 @@ if (profileMenuToggle) {
 if (ordersMenuToggle) {
   ordersMenuToggle.addEventListener('click', () => {
     setActiveAccountSection('pending-orders-card');
+  });
+}
+
+if (installmentsMenuToggle) {
+  installmentsMenuToggle.addEventListener('click', () => {
+    setActiveAccountSection('installments-pending-card');
   });
 }
 
@@ -1666,6 +2064,7 @@ if (favoritesSearchInput) {
 if (ordersSearchInput) {
   ordersSearchInput.addEventListener('input', (event) => {
     ordersState.completedQuery = event.currentTarget.value;
+    ordersState.completedPage = 1;
     renderOrders(ordersState.items);
   });
 }
@@ -1673,6 +2072,7 @@ if (ordersSearchInput) {
 if (ordersDateFilter) {
   ordersDateFilter.addEventListener('change', (event) => {
     ordersState.completedDateWindowDays = event.currentTarget.value;
+    ordersState.completedPage = 1;
     renderOrders(ordersState.items);
   });
 }

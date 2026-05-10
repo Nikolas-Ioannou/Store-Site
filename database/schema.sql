@@ -348,8 +348,71 @@ CREATE INDEX IF NOT EXISTS idx_shipments_status ON shipments(status);
 CREATE INDEX IF NOT EXISTS idx_order_status_history_order_id ON order_status_history(order_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_product_id ON inventory_movements(product_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_warehouse_id ON inventory_movements(warehouse_id);
+
+CREATE TABLE IF NOT EXISTS order_installment_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    order_id INTEGER NOT NULL UNIQUE,
+    user_id INTEGER NOT NULL,
+    total_amount DECIMAL(10, 2) NOT NULL CHECK (total_amount >= 0),
+    currency_code TEXT NOT NULL DEFAULT 'EUR',
+    installment_count INTEGER NOT NULL CHECK (installment_count >= 2),
+    installment_amount DECIMAL(10, 2) NOT NULL CHECK (installment_amount >= 0),
+    paid_count INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'defaulted', 'cancelled')),
+    next_due_date TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS installment_payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id INTEGER NOT NULL,
+    installment_number INTEGER NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL CHECK (amount >= 0),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed', 'overdue')),
+    due_date TEXT,
+    paid_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (plan_id) REFERENCES order_installment_plans(id) ON DELETE CASCADE,
+    UNIQUE (plan_id, installment_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_installment_plans_user_id ON order_installment_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_installment_plans_order_id ON order_installment_plans(order_id);
+CREATE INDEX IF NOT EXISTS idx_installment_payments_plan_id ON installment_payments(plan_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_reservations_order_id ON inventory_reservations(order_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_reservations_product_id ON inventory_reservations(product_id);
+
+CREATE TABLE IF NOT EXISTS coupons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    description TEXT,
+    discount_type TEXT NOT NULL DEFAULT 'percent' CHECK (discount_type IN ('percent', 'fixed')),
+    discount_value DECIMAL(10, 2) NOT NULL CHECK (discount_value > 0),
+    currency_code TEXT NOT NULL DEFAULT 'EUR',
+    min_order_amount DECIMAL(10, 2),
+    max_uses INTEGER,
+    times_used INTEGER NOT NULL DEFAULT 0,
+    valid_from TEXT,
+    valid_until TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_coupons (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    coupon_id INTEGER NOT NULL,
+    assigned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    used_at TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (coupon_id) REFERENCES coupons(id) ON DELETE CASCADE,
+    UNIQUE (user_id, coupon_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_coupons_user_id ON user_coupons(user_id);
 
 CREATE TRIGGER IF NOT EXISTS trg_products_updated_at
 AFTER UPDATE ON products

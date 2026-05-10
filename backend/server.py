@@ -378,6 +378,17 @@ def build_order_payload(order_id):
     payload['payments'] = rows_to_dicts(payments)
     payload['shipments'] = rows_to_dicts(shipments)
     payload['status_history'] = rows_to_dicts(status_history)
+
+    installment_plan = db.fetch_one(
+        '''
+        SELECT id, status, paid_count, installment_count, installment_amount, total_amount, currency_code, next_due_date
+        FROM order_installment_plans
+        WHERE order_id = ?
+        ''',
+        (order_id,),
+    )
+    payload['installment_plan'] = row_to_dict(installment_plan)
+
     return payload
 
 
@@ -409,6 +420,10 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 return self.handle_get_auth_session(query)
             if path == '/api/orders':
                 return self.handle_get_orders(query)
+            if path == '/api/installments':
+                return self.handle_get_installments(query)
+            if path == '/api/coupons':
+                return self.handle_get_coupons(query)
             if path == '/api/payments':
                 return self.handle_get_payments()
             if path == '/api/shipments':
@@ -471,6 +486,10 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 return self.handle_create_payment(body)
             if path == '/api/shipments':
                 return self.handle_create_shipment(body)
+
+            installment_pay_match = re.fullmatch(r'/api/installments/(\d+)/pay', path)
+            if installment_pay_match:
+                return self.handle_pay_installment(int(installment_pay_match.group(1)), body)
 
             address_match = re.fullmatch(r'/api/users/(\d+)/addresses', path)
             if address_match:
@@ -1073,7 +1092,118 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             return self.send_json({'error': 'Order not found'}, HTTPStatus.NOT_FOUND)
         self.send_json(payload)
 
-    def handle_create_order(self, body):
+    def handle_get_installments(self, query):
+        user_id = query.get('user_id', [None])[0]
+        if not user_id:
+            raise ValueError('user_id is required')
+
+        plans = db.fetch_all(
+            '''
+            SELECT ip.id, ip.order_id, ip.total_amount, ip.currency_code,
+                   ip.installment_count, ip.installment_amount, ip.paid_count,
+                   ip.status, ip.next_due_date, ip.created_at, ip.updated_at,
+                   o.order_number, o.placed_at, o.status AS order_status
+            FROM order_installment_plans ip
+            INNER JOIN orders o ON o.id = ip.order_id
+            WHERE ip.user_id = ?
+            ORDER BY ip.created_at DESC
+            ''',
+            (int(user_id),),
+        )
+
+        result = []
+        for plan in plans:
+            plan_dict = row_to_dict(plan)
+            payments = db.fetch_all(
+                '''
+                SELECT id, installment_number, amount, status, due_date, paid_at
+                FROM installment_payments
+                WHERE plan_id = ?
+                ORDER BY installment_number ASC
+                ''',
+                (plan['id'],),
+            )
+            plan_dict['payments'] = rows_to_dicts(payments)
+            order_items = db.fetch_all(
+                'SELECT product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ? ORDER BY id ASC',
+                (plan['order_id'],),
+            )
+            plan_dict['order_items'] = rows_to_dicts(order_items)
+            result.append(plan_dict)
+
+        self.send_json({'items': result})
+
+    def handle_pay_installment(self, plan_id, body):
+        plan = db.fetch_one(
+            'SELECT id, user_id, paid_count, installment_count, status FROM order_installment_plans WHERE id = ?',
+            (plan_id,),
+        )
+        if plan is None:
+            return self.send_json({'error': 'Installment plan not found'}, HTTPStatus.NOT_FOUND)
+        if plan['status'] != 'active':
+            return self.send_json({'error': 'Installment plan is not active'}, HTTPStatus.BAD_REQUEST)
+        if plan['paid_count'] >= plan['installment_count']:
+            return self.send_json({'error': 'All installments have been paid'}, HTTPStatus.BAD_REQUEST)
+
+        next_payment = db.fetch_one(
+            "SELECT id, installment_number FROM installment_payments WHERE plan_id = ? AND status = 'pending' ORDER BY installment_number ASC LIMIT 1",
+            (plan_id,),
+        )
+        if next_payment is None:
+            return self.send_json({'error': 'No pending installment found'}, HTTPStatus.BAD_REQUEST)
+
+        now = utc_timestamp()
+        new_paid_count = plan['paid_count'] + 1
+        new_status = 'completed' if new_paid_count >= plan['installment_count'] else 'active'
+
+        # Compute next_due_date from the next pending payment after this one
+        def do_pay(connection):
+            connection.execute(
+                "UPDATE installment_payments SET status = 'paid', paid_at = ? WHERE id = ?",
+                (now, next_payment['id']),
+            )
+            next_pending = connection.execute(
+                "SELECT due_date FROM installment_payments WHERE plan_id = ? AND status = 'pending' AND installment_number > ? ORDER BY installment_number ASC LIMIT 1",
+                (plan_id, next_payment['installment_number']),
+            ).fetchone()
+            next_due_date = next_pending['due_date'] if next_pending else None
+            connection.execute(
+                'UPDATE order_installment_plans SET paid_count = ?, status = ?, next_due_date = ?, updated_at = ? WHERE id = ?',
+                (new_paid_count, new_status, next_due_date, now, plan_id),
+            )
+
+        db.run_transaction(do_pay)
+        updated_plan = db.fetch_one(
+            '''
+            SELECT ip.id, ip.paid_count, ip.installment_count, ip.installment_amount,
+                   ip.status, ip.next_due_date, ip.currency_code, o.order_number
+            FROM order_installment_plans ip
+            INNER JOIN orders o ON o.id = ip.order_id
+            WHERE ip.id = ?
+            ''',
+            (plan_id,),
+        )
+        self.send_json({'plan': row_to_dict(updated_plan)})
+
+    def handle_get_coupons(self, query):
+        user_id = query.get('user_id', [None])[0]
+        if not user_id:
+            raise ValueError('user_id is required')
+
+        rows = db.fetch_all(
+            '''
+            SELECT c.id, c.code, c.description, c.discount_type, c.discount_value,
+                   c.currency_code, c.min_order_amount, c.max_uses, c.times_used,
+                   c.valid_from, c.valid_until, c.is_active,
+                   uc.assigned_at, uc.used_at
+            FROM user_coupons uc
+            INNER JOIN coupons c ON c.id = uc.coupon_id
+            WHERE uc.user_id = ?
+            ORDER BY uc.used_at IS NULL DESC, uc.assigned_at DESC
+            ''',
+            (int(user_id),),
+        )
+        self.send_json({'items': rows_to_dicts(rows)})
         cart_id = body.get('cart_id')
         if not cart_id:
             raise ValueError('cart_id is required')
