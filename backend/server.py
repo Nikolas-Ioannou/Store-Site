@@ -299,6 +299,32 @@ def fetch_invoice_profiles(user_id):
     )
 
 
+def compute_coupon_discount(coupon, user_coupon, subtotal_amount):
+    if coupon is None or user_coupon is None:
+        raise ValueError('Coupon not found for this user')
+    if not coupon['is_active']:
+        raise ValueError('Coupon is not active')
+    if user_coupon['used_at']:
+        raise ValueError('Coupon has already been used')
+
+    today = datetime.now(UTC).strftime('%Y-%m-%d')
+    if coupon['valid_from'] and today < coupon['valid_from']:
+        raise ValueError('Coupon is not valid yet')
+    if coupon['valid_until'] and today > coupon['valid_until']:
+        raise ValueError('Coupon has expired')
+    if coupon['min_order_amount'] and subtotal_amount < float(coupon['min_order_amount']):
+        raise ValueError(f"Coupon requires a minimum order of {coupon['min_order_amount']}")
+    if coupon['max_uses'] is not None and coupon['times_used'] >= coupon['max_uses']:
+        raise ValueError('Coupon has reached its usage limit')
+
+    if coupon['discount_type'] == 'percent':
+        discount = subtotal_amount * float(coupon['discount_value']) / 100
+    else:
+        discount = float(coupon['discount_value'])
+
+    return round(min(discount, subtotal_amount), 2)
+
+
 def build_order_payload(order_id):
     order = db.fetch_one(
         '''
@@ -410,6 +436,10 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 return self.send_json({'status': 'ok', 'database': 'ready'})
             if path == '/api/categories':
                 return self.handle_get_categories()
+            if path == '/api/shipping-methods':
+                return self.handle_get_shipping_methods()
+            if path == '/api/stores':
+                return self.handle_get_stores()
             if path == '/api/products':
                 return self.handle_get_products(query)
             if path == '/api/trending':
@@ -440,6 +470,14 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 return self.handle_single_view('view_total_revenue')
             if path == '/api/reports/low-stock':
                 return self.handle_view_query('view_low_stock_products')
+
+            product_reviews_match = re.fullmatch(r'/api/products/(\d+)/reviews', path)
+            if product_reviews_match:
+                return self.handle_get_product_reviews(int(product_reviews_match.group(1)))
+
+            store_inventory_match = re.fullmatch(r'/api/products/(\d+)/store-inventory', path)
+            if store_inventory_match:
+                return self.handle_get_product_store_inventory(int(store_inventory_match.group(1)))
 
             product_match = re.fullmatch(r'/api/products/(\d+)', path)
             if product_match:
@@ -502,6 +540,14 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             cart_item_match = re.fullmatch(r'/api/carts/(\d+)/items', path)
             if cart_item_match:
                 return self.handle_add_cart_item(int(cart_item_match.group(1)), body)
+
+            apply_coupon_match = re.fullmatch(r'/api/carts/(\d+)/apply-coupon', path)
+            if apply_coupon_match:
+                return self.handle_apply_coupon(int(apply_coupon_match.group(1)), body)
+
+            product_reviews_match = re.fullmatch(r'/api/products/(\d+)/reviews', path)
+            if product_reviews_match:
+                return self.handle_create_product_review(int(product_reviews_match.group(1)), body)
 
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
         except ValueError as error:
@@ -597,33 +643,125 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         rows = db.fetch_all('SELECT id, name, slug, created_at FROM categories ORDER BY name ASC')
         self.send_json({'items': rows_to_dicts(rows)})
 
+    def handle_get_shipping_methods(self):
+        rows = db.fetch_all(
+            '''
+            SELECT id, name, code, carrier_name, base_cost, estimated_days_min, estimated_days_max
+            FROM shipping_methods
+            WHERE is_active = 1
+            ORDER BY base_cost ASC
+            '''
+        )
+        self.send_json({'items': rows_to_dicts(rows)})
+
+    def handle_get_stores(self):
+        rows = db.fetch_all(
+            'SELECT id, name, location, is_active FROM stores WHERE is_active = 1 ORDER BY name ASC'
+        )
+        self.send_json({'items': rows_to_dicts(rows)})
+
+    def handle_get_product_store_inventory(self, product_id):
+        product = db.fetch_one('SELECT product_id FROM view_product_catalog WHERE product_id = ?', (product_id,))
+        if product is None:
+            return self.send_json({'error': 'Product not found'}, HTTPStatus.NOT_FOUND)
+
+        rows = db.fetch_all(
+            '''
+            SELECT s.id AS store_id, s.name AS store_name, s.location,
+                   COALESCE(si.quantity, 0) AS quantity
+            FROM stores s
+            LEFT JOIN store_inventory si ON si.store_id = s.id AND si.product_id = ?
+            WHERE s.is_active = 1
+            ORDER BY s.name ASC
+            ''',
+            (product_id,),
+        )
+        self.send_json({'items': rows_to_dicts(rows)})
+
     def handle_get_products(self, query):
         limit = int(query.get('limit', ['24'])[0])
+        offset = int(query.get('offset', ['0'])[0])
         search = query.get('search', [''])[0].strip()
         category = query.get('category', [''])[0].strip()
+        brand = query.get('brand', [''])[0].strip()
+        min_price = query.get('min_price', [''])[0].strip()
+        max_price = query.get('max_price', [''])[0].strip()
+        in_stock = query.get('in_stock', [''])[0].strip().lower()
+        sort = query.get('sort', ['name_asc'])[0].strip()
 
-        clauses = ['is_active = 1']
-        params = []
+        # Base clauses (search/category) are reused as-is for the brand facet query,
+        # so the sidebar keeps listing every brand available under the current
+        # search/category regardless of which brand/price/stock filters are active.
+        base_clauses = ['is_active = 1']
+        base_params = []
 
         if search:
-            clauses.append('(LOWER(product_name) LIKE ? OR LOWER(COALESCE(brand, \"\")) LIKE ?)')
+            base_clauses.append('(LOWER(product_name) LIKE ? OR LOWER(COALESCE(brand, \"\")) LIKE ?)')
             like = f'%{search.lower()}%'
-            params.extend([like, like])
+            base_params.extend([like, like])
 
         if category:
-            clauses.append('(category_slug = ? OR LOWER(category_name) = ?)')
-            params.extend([category, category.lower()])
+            base_clauses.append('(category_slug = ? OR LOWER(category_name) = ?)')
+            base_params.extend([category, category.lower()])
+
+        clauses = list(base_clauses)
+        params = list(base_params)
+
+        if brand:
+            clauses.append('brand = ?')
+            params.append(brand)
+
+        if min_price:
+            clauses.append('cost >= ?')
+            params.append(float(min_price))
+
+        if max_price:
+            clauses.append('cost <= ?')
+            params.append(float(max_price))
+
+        if in_stock in ('1', 'true', 'yes'):
+            clauses.append('stock_quantity > 0')
+
+        where_sql = ' AND '.join(clauses)
+
+        sort_columns = {
+            'name_asc': 'product_name ASC',
+            'price_asc': 'cost ASC',
+            'price_desc': 'cost DESC',
+            'newest': 'release_date DESC',
+        }
+        order_by = sort_columns.get(sort, sort_columns['name_asc'])
+
+        total_row = db.fetch_one(
+            f'SELECT COUNT(*) AS count FROM view_product_catalog WHERE {where_sql}',
+            tuple(params),
+        )
+        total = total_row['count'] if total_row else 0
 
         sql = f'''
             SELECT *
             FROM view_product_catalog
-            WHERE {' AND '.join(clauses)}
-            ORDER BY product_name ASC
-            LIMIT ?
+            WHERE {where_sql}
+            ORDER BY {order_by}
+            LIMIT ? OFFSET ?
         '''
-        params.append(limit)
-        rows = db.fetch_all(sql, tuple(params))
-        self.send_json({'items': rows_to_dicts(rows)})
+        rows = db.fetch_all(sql, tuple(params) + (limit, offset))
+
+        brand_rows = db.fetch_all(
+            f'''
+            SELECT DISTINCT brand
+            FROM view_product_catalog
+            WHERE {' AND '.join(base_clauses)} AND brand IS NOT NULL
+            ORDER BY brand ASC
+            ''',
+            tuple(base_params),
+        )
+
+        self.send_json({
+            'items': rows_to_dicts(rows),
+            'total': total,
+            'brands': [row['brand'] for row in brand_rows],
+        })
 
     def handle_get_product(self, product_id):
         product = db.fetch_one('SELECT * FROM view_product_catalog WHERE product_id = ?', (product_id,))
@@ -643,6 +781,76 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         payload['photos'] = rows_to_dicts(photos)
         payload['description_photos'] = rows_to_dicts(description_photos)
         self.send_json(payload)
+
+    def handle_get_product_reviews(self, product_id):
+        product = db.fetch_one('SELECT product_id FROM view_product_catalog WHERE product_id = ?', (product_id,))
+        if product is None:
+            return self.send_json({'error': 'Product not found'}, HTTPStatus.NOT_FOUND)
+
+        rows = db.fetch_all(
+            '''
+            SELECT r.id, r.product_id, r.user_id, r.rating, r.title, r.body, r.created_at, r.updated_at,
+                   u.first_name AS reviewer_first_name, u.last_name AS reviewer_last_name
+            FROM product_reviews r
+            INNER JOIN users u ON u.id = r.user_id
+            WHERE r.product_id = ?
+            ORDER BY r.created_at DESC
+            ''',
+            (product_id,),
+        )
+
+        breakdown_rows = db.fetch_all(
+            'SELECT rating, COUNT(*) AS count FROM product_reviews WHERE product_id = ? GROUP BY rating',
+            (product_id,),
+        )
+        rating_breakdown = {str(star): 0 for star in range(5, 0, -1)}
+        for row in breakdown_rows:
+            rating_breakdown[str(row['rating'])] = row['count']
+
+        self.send_json({'items': rows_to_dicts(rows), 'rating_breakdown': rating_breakdown})
+
+    def handle_create_product_review(self, product_id, body):
+        product = db.fetch_one('SELECT product_id FROM view_product_catalog WHERE product_id = ?', (product_id,))
+        if product is None:
+            return self.send_json({'error': 'Product not found'}, HTTPStatus.NOT_FOUND)
+
+        user_id = body.get('user_id')
+        if not user_id:
+            raise ValueError('user_id is required')
+
+        user = db.fetch_one('SELECT id FROM users WHERE id = ?', (user_id,))
+        if user is None:
+            return self.send_json({'error': 'User not found'}, HTTPStatus.NOT_FOUND)
+
+        rating = int(body.get('rating', 0))
+        if rating < 1 or rating > 5:
+            raise ValueError('rating must be between 1 and 5')
+
+        existing = db.fetch_one(
+            'SELECT id FROM product_reviews WHERE product_id = ? AND user_id = ?',
+            (product_id, user_id),
+        )
+        if existing is not None:
+            return self.send_json({'error': 'You have already reviewed this product'}, HTTPStatus.CONFLICT)
+
+        review_id = db.execute(
+            '''
+            INSERT INTO product_reviews (product_id, user_id, rating, title, body)
+            VALUES (?, ?, ?, ?, ?)
+            ''',
+            (product_id, user_id, rating, body.get('title'), body.get('body')),
+        )
+        review = db.fetch_one(
+            '''
+            SELECT r.id, r.product_id, r.user_id, r.rating, r.title, r.body, r.created_at, r.updated_at,
+                   u.first_name AS reviewer_first_name, u.last_name AS reviewer_last_name
+            FROM product_reviews r
+            INNER JOIN users u ON u.id = r.user_id
+            WHERE r.id = ?
+            ''',
+            (review_id,),
+        )
+        self.send_json(row_to_dict(review), HTTPStatus.CREATED)
 
     def handle_get_trending(self, query):
         limit = int(query.get('limit', ['10'])[0])
@@ -1034,7 +1242,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         if not product_id or quantity <= 0:
             raise ValueError('product_id and positive quantity are required')
 
-        product = db.fetch_one('SELECT id, cost FROM products WHERE id = ? AND is_active = 1', (product_id,))
+        product = db.fetch_one('SELECT id, selling_price FROM products WHERE id = ? AND is_active = 1', (product_id,))
         if product is None:
             return self.send_json({'error': 'Product not found'}, HTTPStatus.NOT_FOUND)
 
@@ -1045,12 +1253,12 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         if existing:
             db.execute(
                 'UPDATE cart_items SET quantity = ?, unit_price = ? WHERE id = ?',
-                (existing['quantity'] + quantity, product['cost'], existing['id']),
+                (existing['quantity'] + quantity, product['selling_price'], existing['id']),
             )
         else:
             db.execute(
                 'INSERT INTO cart_items (cart_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)',
-                (cart_id, product_id, quantity, product['cost']),
+                (cart_id, product_id, quantity, product['selling_price']),
             )
         self.send_json(build_cart_payload(cart_id), HTTPStatus.CREATED)
 
@@ -1072,6 +1280,39 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             return self.send_json({'error': 'Cart item not found'}, HTTPStatus.NOT_FOUND)
         db.execute('DELETE FROM cart_items WHERE id = ?', (item_id,))
         self.send_json(build_cart_payload(cart_id))
+
+    def handle_apply_coupon(self, cart_id, body):
+        code = (body.get('code') or '').strip()
+        user_id = body.get('user_id')
+        if not code or not user_id:
+            raise ValueError('code and user_id are required')
+
+        cart_payload = build_cart_payload(cart_id)
+        if cart_payload is None:
+            return self.send_json({'error': 'Cart not found'}, HTTPStatus.NOT_FOUND)
+
+        coupon = db.fetch_one('SELECT * FROM coupons WHERE code = ?', (code,))
+        user_coupon = None
+        if coupon is not None:
+            user_coupon = db.fetch_one(
+                'SELECT * FROM user_coupons WHERE user_id = ? AND coupon_id = ?',
+                (user_id, coupon['id']),
+            )
+
+        try:
+            discount_amount = compute_coupon_discount(
+                coupon, user_coupon, float(cart_payload['subtotal_amount'])
+            )
+        except ValueError as error:
+            return self.send_json({'error': str(error)}, HTTPStatus.BAD_REQUEST)
+
+        # Deliberately not persisted / marked used here — only handle_create_order
+        # commits a coupon to an order, so an abandoned cart doesn't burn it.
+        self.send_json({
+            'coupon_id': coupon['id'],
+            'code': coupon['code'],
+            'discount_amount': discount_amount,
+        })
 
     def handle_get_orders(self, query):
         limit = int(query.get('limit', ['25'])[0])
@@ -1204,6 +1445,8 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             (int(user_id),),
         )
         self.send_json({'items': rows_to_dicts(rows)})
+
+    def handle_create_order(self, body):
         cart_id = body.get('cart_id')
         if not cart_id:
             raise ValueError('cart_id is required')
@@ -1245,7 +1488,21 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 2,
             )
             tax_amount = float(body.get('tax_amount', 0))
-            discount_amount = float(body.get('discount_amount', 0))
+
+            order_user_id = body.get('user_id', cart['user_id'])
+            coupon_id = body.get('coupon_id')
+            if coupon_id:
+                coupon_row = connection.execute('SELECT * FROM coupons WHERE id = ?', (coupon_id,)).fetchone()
+                user_coupon_row = connection.execute(
+                    'SELECT * FROM user_coupons WHERE user_id = ? AND coupon_id = ?',
+                    (order_user_id, coupon_id),
+                ).fetchone()
+                # Recomputed server-side regardless of what the client sent — a coupon
+                # in the body always wins over a client-supplied discount_amount.
+                discount_amount = compute_coupon_discount(coupon_row, user_coupon_row, subtotal_amount)
+            else:
+                discount_amount = float(body.get('discount_amount', 0))
+
             total_amount = round(subtotal_amount + shipping_amount + tax_amount - discount_amount, 2)
 
             next_sequence = connection.execute('SELECT COUNT(*) + 1 FROM orders').fetchone()[0]
@@ -1375,6 +1632,13 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                         body.get('shipment_status', 'pending'),
                     ),
                 )
+
+            if coupon_id:
+                connection.execute(
+                    'UPDATE user_coupons SET used_at = ? WHERE user_id = ? AND coupon_id = ?',
+                    (placed_at, order_user_id, coupon_id),
+                )
+                connection.execute('UPDATE coupons SET times_used = times_used + 1 WHERE id = ?', (coupon_id,))
 
             connection.execute('UPDATE carts SET status = ? WHERE id = ?', ('converted', cart_id))
             return order_id

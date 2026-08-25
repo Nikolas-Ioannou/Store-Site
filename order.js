@@ -86,7 +86,7 @@ function getOrderProgressCopy(order) {
     const totalCount = Number(installmentPlan.installment_count || 1);
     return {
       badge: 'Installments Active',
-      detail: `Product delivered. ${paidCount} of ${totalCount} instalments paid.`,
+      detail: `Product delivered. ${paidCount} of ${totalCount} installments paid.`,
       iconSrc: 'Photos/order.png',
       step: isDelivered ? 5 : 4,
       tone: 'shipped',
@@ -95,8 +95,8 @@ function getOrderProgressCopy(order) {
 
   if (installmentPlan && installmentPlan.status === 'completed') {
     return {
-      badge: 'Instalments Complete',
-      detail: 'All instalments have been paid.',
+      badge: 'Installments Complete',
+      detail: 'All installments have been paid.',
       iconSrc: 'Photos/order.png',
       step: 5,
       tone: 'delivered',

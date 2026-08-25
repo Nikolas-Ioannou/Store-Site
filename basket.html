@@ -8,6 +8,23 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="utility-bar">
+      <div class="container utility-links">
+        <a href="tel:+302101234567">
+          <img src="Photos/telephone.png" alt="" />
+          Customer service: 210 123 4567
+        </a>
+        <a href="products.html">
+          <img src="Photos/delivery-truck.png" alt="" />
+          Free shipping over &euro;50
+        </a>
+        <a href="products.html">
+          <img src="Photos/box.png" alt="" />
+          Store pickup available
+        </a>
+      </div>
+    </div>
+
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Bluehaven Store home">
@@ -18,8 +35,14 @@
           </span>
         </a>
 
+        <div class="menu-hub">
+          <a class="menu-toggle" href="products.html">
+            <span aria-hidden="true">&#9776;</span> Products
+          </a>
+        </div>
+
         <div class="header-search">
-          <form class="header-search-form" action="index.html#product-browser" role="search">
+          <form class="header-search-form" action="products.html" role="search">
             <span class="header-search-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false">
                 <circle cx="11" cy="11" r="6.5"></circle>
@@ -50,13 +73,61 @@
       </div>
     </header>
 
-    <main class="standalone-page">
-      <section class="standalone-card">
-        <img src="Photos/shopping-cart.png" alt="" />
+    <main>
+      <div class="container basket-page">
         <h1>Your Basket</h1>
-        <p>This page can hold cart items, totals, and checkout actions.</p>
-        <a class="button button-primary" href="index.html">Back to store</a>
-      </section>
+
+        <div id="basketEmptyState" class="basket-empty" hidden>
+          <img src="Photos/shopping-cart.png" alt="" />
+          <h2>Your basket is empty</h2>
+          <p>Browse the catalog and add something you like.</p>
+          <a class="button button-primary" href="products.html">Start shopping</a>
+        </div>
+
+        <div id="basketCartView" class="basket-layout" hidden>
+          <div class="basket-items" id="basketItems"></div>
+
+          <aside class="basket-summary">
+            <h2>Order summary</h2>
+            <dl class="basket-summary-list" id="basketSummaryList"></dl>
+
+            <div class="basket-shipping">
+              <label for="basketShippingSelect">Shipping method</label>
+              <select id="basketShippingSelect"></select>
+            </div>
+
+            <div class="basket-coupon">
+              <label for="basketCouponInput">Coupon code</label>
+              <div class="basket-coupon-row">
+                <input id="basketCouponInput" type="text" placeholder="Enter code" autocomplete="off" />
+                <button class="button button-secondary" type="button" id="basketCouponApply">Apply</button>
+              </div>
+              <p class="basket-coupon-message" id="basketCouponMessage" hidden></p>
+            </div>
+
+            <div class="basket-total-row">
+              <span>Total</span>
+              <strong id="basketTotal">&euro;0.00</strong>
+            </div>
+
+            <button class="button button-primary" type="button" id="basketProceedButton">Proceed to checkout</button>
+            <p class="basket-guest-note" id="basketGuestNote" hidden>
+              <a href="profile.html">Sign in</a> to place an order and track it from your account.
+            </p>
+          </aside>
+        </div>
+
+        <div id="basketCheckoutView" class="basket-checkout" hidden>
+          <h2>Checkout</h2>
+          <p>Choose a delivery address for this order.</p>
+          <div class="checkout-address-list" id="checkoutAddressList"></div>
+          <div class="checkout-actions">
+            <button class="button button-secondary" type="button" id="checkoutBackButton">Back to basket</button>
+            <button class="button button-primary" type="button" id="checkoutPlaceOrderButton">Place order</button>
+          </div>
+          <p class="checkout-message" id="checkoutMessage" hidden></p>
+        </div>
+      </div>
     </main>
 
     <footer class="site-footer">
@@ -80,7 +151,7 @@
           <strong class="footer-nav-heading">Store</strong>
           <ul class="footer-nav-list">
             <li><a href="index.html">Home</a></li>
-            <li><a href="index.html#product-browser">Products</a></li>
+            <li><a href="products.html">Products</a></li>
             <li><a href="basket.html">Basket</a></li>
             <li><a href="favorites.html">Favorites</a></li>
           </ul>
@@ -124,5 +195,6 @@
     </footer>
 
     <script src="site.js"></script>
+    <script src="basket.js"></script>
   </body>
 </html>

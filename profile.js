@@ -433,15 +433,15 @@ function getOrderProgressCopy(order) {
     const paidCount = Number(installmentPlan.paid_count || 0);
     const totalCount = Number(installmentPlan.installment_count || 1);
     return {
-      badge: 'Instalments Active',
-      detail: `${paidCount} of ${totalCount} instalments paid.`,
+      badge: 'Installments Active',
+      detail: `${paidCount} of ${totalCount} installments paid.`,
     };
   }
 
   if (installmentPlan && installmentPlan.status === 'completed') {
     return {
-      badge: 'Instalments Complete',
-      detail: 'All instalments paid.',
+      badge: 'Installments Complete',
+      detail: 'All installments paid.',
     };
   }
 

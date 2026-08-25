@@ -1,6 +1,8 @@
 (() => {
   const CURRENT_USER_STORAGE_KEY = 'storeUserId';
   const FAVORITES_STORAGE_KEY = 'storeFavoriteProductIds';
+  const CART_ID_STORAGE_KEY = 'storeCartId';
+  const GUEST_TOKEN_STORAGE_KEY = 'storeGuestToken';
 
   function getCurrentUserId() {
     try {
@@ -78,6 +80,40 @@
     });
   }
 
+  function getGuestToken() {
+    let token = window.localStorage.getItem(GUEST_TOKEN_STORAGE_KEY);
+    if (!token) {
+      token = `guest-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      window.localStorage.setItem(GUEST_TOKEN_STORAGE_KEY, token);
+    }
+    return token;
+  }
+
+  async function getOrCreateCartId() {
+    const existingCartId = window.localStorage.getItem(CART_ID_STORAGE_KEY);
+    if (existingCartId) {
+      const existingCartResponse = await fetch(`/api/carts/${encodeURIComponent(existingCartId)}`);
+      if (existingCartResponse.ok) {
+        return existingCartId;
+      }
+      // Stored cart id is stale (deleted/converted elsewhere) — fall through and create a new one.
+      window.localStorage.removeItem(CART_ID_STORAGE_KEY);
+    }
+
+    const userId = getCurrentUserId();
+    const response = await fetch('/api/carts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userId ? { user_id: Number(userId) } : { session_token: getGuestToken() }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create a cart');
+    }
+    const cart = await response.json();
+    window.localStorage.setItem(CART_ID_STORAGE_KEY, String(cart.id));
+    return String(cart.id);
+  }
+
   window.StoreSite = {
     getCurrentUserId,
     isLoggedIn,
@@ -87,6 +123,7 @@
     toggleFavoriteProduct,
     getFavoritesTargetUrl,
     bindFavoritesLinks,
+    getOrCreateCartId,
   };
 
   function initSite() {

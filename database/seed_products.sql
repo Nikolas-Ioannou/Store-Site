@@ -1,8 +1,18 @@
+-- Mirrors plaisio.gr's real top-level department structure (checked against
+-- their live categories sitemap), trimmed to what fits Bluehaven's electronics
+-- + books identity — their general-merchandise departments (furniture,
+-- cleaning, coffee machines, personal care, toys, stationery) are dropped.
 INSERT INTO categories (name, slug)
 VALUES
-    ('Electronics', 'electronics'),
-    ('Phones', 'phones'),
-    ('Tablets', 'tablets'),
+    ('TVs & Audio', 'tvs-audio'),
+    ('Phones, Tablets & Wearables', 'phones-tablets-wearables'),
+    ('Laptops & Desktops', 'laptops-desktops'),
+    ('PC & Peripherals', 'pc-peripherals'),
+    ('Photography & Drones', 'photography-drones'),
+    ('Gaming Zone', 'gaming-zone'),
+    ('Networking & Smart Home', 'networking-smart-home'),
+    ('Printing & Supplies', 'printing-supplies'),
+    ('Projectors', 'projectors'),
     ('Books', 'books'),
     ('Accessories', 'accessories');
 
@@ -11,7 +21,9 @@ INSERT INTO products (
     name,
     category_id,
     brand,
-    cost,
+    buying_price,
+    selling_price,
+    compare_at_price,
     currency_code,
     release_date,
     description,
@@ -22,6 +34,7 @@ INSERT INTO products (
     addon_depth_cm,
     addon_height_cm,
     has_addon,
+    max_installments,
     stock_quantity,
     is_active
 )
@@ -29,9 +42,11 @@ VALUES
     (
         'LAP-NOVA-15-001',
         'NovaBook Pro 15',
-        1,
+        3,
         'NovaTech',
+        730.00,
         1149.00,
+        1299.00,
         'EUR',
         '2025-09-15',
         '15-inch performance laptop with Intel Ultra processor, 16GB RAM, 512GB SSD, and long battery life for work and study.',
@@ -42,6 +57,7 @@ VALUES
         NULL,
         NULL,
         0,
+        24,
         25,
         1
     ),
@@ -50,7 +66,9 @@ VALUES
         'Pulse X12',
         2,
         'Pulse Mobile',
+        440.00,
         699.00,
+        799.00,
         'EUR',
         '2026-01-20',
         '5G smartphone with bright OLED display, advanced camera system, and all-day battery for heavy daily use.',
@@ -61,15 +79,18 @@ VALUES
         1.20,
         7.80,
         1,
+        24,
         40,
         1
     ),
     (
         'TAB-SKETCH-11-001',
         'SketchTab 11',
-        3,
+        2,
         'Sketch',
+        270.00,
         429.00,
+        NULL,
         'EUR',
         '2025-11-08',
         'Portable 11-inch tablet with pen support, ideal for note taking, media use, and light creative work.',
@@ -80,15 +101,18 @@ VALUES
         1.10,
         18.20,
         1,
+        12,
         33,
         1
     ),
     (
         'BOK-FUTURE-TECH-001',
         'Future of Consumer Tech',
-        4,
+        10,
         'Bluehaven Press',
+        14.50,
         24.00,
+        NULL,
         'EUR',
         '2026-03-05',
         'A business and technology title focused on retail transformation, device ecosystems, and the future of consumer products.',
@@ -99,15 +123,18 @@ VALUES
         NULL,
         NULL,
         0,
+        NULL,
         120,
         1
     ),
     (
         'ACC-BUDS-AIR-001',
         'AeroBuds Lite',
-        5,
+        1,
         'AeroSound',
+        48.00,
         79.00,
+        99.00,
         'EUR',
         '2025-07-01',
         'Wireless earbuds with compact charging case, clear calls, and balanced everyday sound.',
@@ -118,6 +145,7 @@ VALUES
         NULL,
         NULL,
         0,
+        6,
         75,
         1
     );
@@ -139,3 +167,23 @@ VALUES
     (3, 'https://images.example.com/products/sketchtab-11/pen.jpg', 'Tablet drawing experience with pen accessory.', 1),
     (4, 'https://images.example.com/products/future-consumer-tech/open-book.jpg', 'Open spread showing chapter layout.', 1),
     (5, 'https://images.example.com/products/aerobuds-lite/in-ear.jpg', 'In-ear fit preview for the earbuds.', 1);
+
+INSERT INTO stores (name, location)
+VALUES
+    ('Athens Store', 'Athens'),
+    ('Thessaloniki Store', 'Thessaloniki'),
+    ('Patras Store', 'Patras'),
+    ('Larissa Store', 'Larissa');
+
+INSERT INTO store_inventory (store_id, product_id, quantity)
+VALUES
+    -- NovaBook Pro 15
+    (1, 1, 4), (2, 1, 2), (3, 1, 1), (4, 1, 3),
+    -- Pulse X12
+    (1, 2, 8), (2, 2, 5), (3, 2, 3), (4, 2, 4),
+    -- SketchTab 11
+    (1, 3, 5), (2, 3, 3), (3, 3, 2), (4, 3, 3),
+    -- Future of Consumer Tech
+    (1, 4, 20), (2, 4, 15), (3, 4, 10), (4, 4, 12),
+    -- AeroBuds Lite
+    (1, 5, 12), (2, 5, 8), (3, 5, 6), (4, 5, 7);

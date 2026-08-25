@@ -4,20 +4,18 @@ const menuCategories = document.getElementById('menu-categories');
 const year = document.getElementById('year');
 const headerSearchForm = document.getElementById('header-search-form');
 const headerSearchInput = document.getElementById('header-search-input');
-const heroSearchForm = document.getElementById('hero-search-form');
-const heroSearchInput = document.getElementById('hero-search-input');
-const productSearchForm = document.getElementById('product-search-form');
-const productSearchInput = document.getElementById('product-search-input');
 const productsGrid = document.getElementById('products-grid');
 const resultsSummary = document.getElementById('results-summary');
 const browserMessage = document.getElementById('browser-message');
 const categoryFilters = document.getElementById('category-filters');
-const trendingName = document.getElementById('trending-name');
-const trendingScore = document.getElementById('trending-score');
-const bestCategoryName = document.getElementById('best-category-name');
-const bestCategoryRevenue = document.getElementById('best-category-revenue');
-const totalRevenueAmount = document.getElementById('total-revenue-amount');
-const totalRevenueOrders = document.getElementById('total-revenue-orders');
+const trendingRail = document.getElementById('trending-rail');
+const newArrivalsRail = document.getElementById('new-arrivals-rail');
+const filterMinPrice = document.getElementById('filter-min-price');
+const filterMaxPrice = document.getElementById('filter-max-price');
+const filterBrandList = document.getElementById('filter-brand-list');
+const filterInStock = document.getElementById('filter-in-stock');
+const filterClearButton = document.getElementById('filter-clear-button');
+const browserSortSelect = document.getElementById('browser-sort-select');
 const userAvatar = document.getElementById('user-avatar');
 const userName = document.getElementById('user-name');
 const userEmail = document.getElementById('user-email');
@@ -32,7 +30,20 @@ const state = {
   categories: [],
   search: '',
   activeCategory: 'all',
+  minPrice: '',
+  maxPrice: '',
+  brands: new Set(),
+  inStock: false,
+  sort: 'name_asc',
 };
+
+function getRequestedCategorySlug() {
+  return new URLSearchParams(window.location.search).get('category');
+}
+
+function isOnProductBrowserPage() {
+  return Boolean(document.getElementById('product-browser'));
+}
 
 const localProductImages = {
   'NovaBook Pro 15': 'Photos/image.png',
@@ -114,7 +125,10 @@ function setBrowserMessage(message = '', isVisible = false) {
 
 function getFilteredProducts() {
   const searchValue = state.search.trim().toLowerCase();
-  return state.products.filter((product) => {
+  const minPrice = state.minPrice === '' ? null : Number(state.minPrice);
+  const maxPrice = state.maxPrice === '' ? null : Number(state.maxPrice);
+
+  const filtered = state.products.filter((product) => {
     const matchesCategory =
       state.activeCategory === 'all' || product.category_slug === state.activeCategory;
     const haystack = [
@@ -127,8 +141,82 @@ function getFilteredProducts() {
       .join(' ')
       .toLowerCase();
     const matchesSearch = !searchValue || haystack.includes(searchValue);
-    return matchesCategory && matchesSearch;
+    const cost = Number(product.cost);
+    const matchesMinPrice = minPrice === null || Number.isNaN(minPrice) || cost >= minPrice;
+    const matchesMaxPrice = maxPrice === null || Number.isNaN(maxPrice) || cost <= maxPrice;
+    const matchesBrand = state.brands.size === 0 || state.brands.has(product.brand);
+    const matchesStock = !state.inStock || Number(product.stock_quantity) > 0;
+    return (
+      matchesCategory &&
+      matchesSearch &&
+      matchesMinPrice &&
+      matchesMaxPrice &&
+      matchesBrand &&
+      matchesStock
+    );
   });
+
+  return sortProducts(filtered);
+}
+
+function sortProducts(products) {
+  const sorted = [...products];
+  switch (state.sort) {
+    case 'price_asc':
+      return sorted.sort((a, b) => Number(a.cost) - Number(b.cost));
+    case 'price_desc':
+      return sorted.sort((a, b) => Number(b.cost) - Number(a.cost));
+    case 'newest':
+      return sorted.sort((a, b) => new Date(b.release_date || 0) - new Date(a.release_date || 0));
+    case 'name_asc':
+    default:
+      return sorted.sort((a, b) => a.product_name.localeCompare(b.product_name));
+  }
+}
+
+function formatStars(avgRating) {
+  const rounded = Math.round(Number(avgRating) || 0);
+  return '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
+}
+
+function buildRatingMarkup(product) {
+  const reviewCount = Number(product.review_count) || 0;
+  if (reviewCount === 0) {
+    return '';
+  }
+  return `<div class="rating-summary"><span class="rating-stars">${formatStars(product.avg_rating)}</span><span>${Number(product.avg_rating).toFixed(1)} (${reviewCount})</span></div>`;
+}
+
+function buildInstallmentMarkup(product) {
+  const maxInstallments = Number(product.max_installments) || 0;
+  if (maxInstallments < 2) {
+    return '';
+  }
+  const perMonth = Number(product.cost) / maxInstallments;
+  return `<div class="installment-badge">or ${maxInstallments}x ${formatCurrency(perMonth, product.currency_code)}/mo</div>`;
+}
+
+function getDiscountPercent(product) {
+  const cost = Number(product.cost);
+  const compareAt = Number(product.compare_at_price) || 0;
+  if (!(compareAt > cost)) {
+    return 0;
+  }
+  return Math.round((1 - cost / compareAt) * 100);
+}
+
+function buildPriceMarkup(product) {
+  const compareAt = Number(product.compare_at_price) || 0;
+  const nowPrice = `<strong class="price-now">${formatCurrency(product.cost, product.currency_code)}</strong>`;
+  if (getDiscountPercent(product) <= 0) {
+    return nowPrice;
+  }
+  return `${nowPrice}<span class="price-was">${formatCurrency(compareAt, product.currency_code)}</span>`;
+}
+
+function buildDiscountRibbon(product) {
+  const percentOff = getDiscountPercent(product);
+  return percentOff > 0 ? `<span class="discount-badge">-${percentOff}%</span>` : '';
 }
 
 function createProductCard(product) {
@@ -142,7 +230,10 @@ function createProductCard(product) {
     : buildFallbackMarkup(product);
 
   card.innerHTML = `
-    <div class="product-card-visual">${imageMarkup}</div>
+    <div class="product-card-visual">
+      ${imageMarkup}
+      ${buildDiscountRibbon(product)}
+    </div>
     <div class="product-copy">
       <div class="product-card-header">
         <span class="tag">${product.category_name}</span>
@@ -150,11 +241,13 @@ function createProductCard(product) {
       </div>
       <span class="product-brand">${product.brand || 'Bluehaven Select'}</span>
       <h3>${product.product_name}</h3>
+      ${buildRatingMarkup(product)}
       <p>${truncateText(product.description)}</p>
       <div class="product-meta">
-        <strong>${formatCurrency(product.cost, product.currency_code)}</strong>
-        <a href="#">View details</a>
+        <span class="price-group">${buildPriceMarkup(product)}</span>
+        <a href="product-detail.html?id=${productId}">View details</a>
       </div>
+      ${buildInstallmentMarkup(product)}
     </div>
   `;
 
@@ -281,11 +374,18 @@ function renderCategoryMenu() {
 
     button.textContent = item.label;
     button.addEventListener('click', () => {
+      closeCategoryMenu();
+
+      if (!isOnProductBrowserPage()) {
+        window.location.href =
+          item.value === 'all' ? 'products.html' : `products.html?category=${encodeURIComponent(item.value)}`;
+        return;
+      }
+
       state.activeCategory = item.value;
       renderCategoryFilters();
       renderCategoryMenu();
       renderProducts();
-      closeCategoryMenu();
       document.getElementById('product-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
@@ -296,12 +396,6 @@ function renderCategoryMenu() {
 function syncSearchInputs(value) {
   if (headerSearchInput) {
     headerSearchInput.value = value;
-  }
-  if (heroSearchInput) {
-    heroSearchInput.value = value;
-  }
-  if (productSearchInput) {
-    productSearchInput.value = value;
   }
 }
 
@@ -315,38 +409,209 @@ async function fetchJson(path) {
 
 async function loadProducts() {
   setBrowserMessage('', false);
-  resultsSummary.textContent = 'Loading products';
+  if (resultsSummary) {
+    resultsSummary.textContent = 'Loading products';
+  }
   const [productsResponse, categoriesResponse] = await Promise.all([
     fetchJson('/api/products'),
     fetchJson('/api/categories'),
   ]);
   state.products = productsResponse.items || [];
   state.categories = categoriesResponse.items || [];
+
+  const requestedCategory = getRequestedCategorySlug();
+  if (requestedCategory && state.categories.some((category) => category.slug === requestedCategory)) {
+    state.activeCategory = requestedCategory;
+  }
+  applyRequestedFiltersFromUrl();
+
   renderCategoryFilters();
   renderCategoryMenu();
+  renderBrandFilterList();
   renderProducts();
 }
 
-async function loadDashboard() {
-  const dashboard = await fetchJson('/api/dashboard');
-  const trending = (dashboard.trending_products || [])[0];
-  const bestCategory = (dashboard.best_seller_categories || [])[0];
-  const totalRevenue = dashboard.total_revenue || {};
+function applyRequestedFiltersFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedSearch = params.get('search');
+  const requestedBrand = params.get('brand');
+  const requestedMinPrice = params.get('min_price');
+  const requestedMaxPrice = params.get('max_price');
+  const requestedInStock = params.get('in_stock');
+  const requestedSort = params.get('sort');
 
-  if (trending && trendingName && trendingScore) {
-    trendingName.textContent = trending.product_name;
-    trendingScore.textContent = `${trending.sold_units} sold, score ${trending.trending_score}`;
+  if (requestedSearch) {
+    state.search = requestedSearch;
+    syncSearchInputs(requestedSearch);
+  }
+  if (requestedBrand && state.products.some((product) => product.brand === requestedBrand)) {
+    state.brands.add(requestedBrand);
+  }
+  if (requestedMinPrice && !Number.isNaN(Number(requestedMinPrice))) {
+    state.minPrice = requestedMinPrice;
+    if (filterMinPrice) filterMinPrice.value = requestedMinPrice;
+  }
+  if (requestedMaxPrice && !Number.isNaN(Number(requestedMaxPrice))) {
+    state.maxPrice = requestedMaxPrice;
+    if (filterMaxPrice) filterMaxPrice.value = requestedMaxPrice;
+  }
+  if (requestedInStock === '1' || requestedInStock === 'true') {
+    state.inStock = true;
+    if (filterInStock) filterInStock.checked = true;
+  }
+  if (requestedSort && ['name_asc', 'price_asc', 'price_desc', 'newest'].includes(requestedSort)) {
+    state.sort = requestedSort;
+    if (browserSortSelect) browserSortSelect.value = requestedSort;
+  }
+}
+
+function renderBrandFilterList() {
+  if (!filterBrandList) {
+    return;
   }
 
-  if (bestCategory && bestCategoryName && bestCategoryRevenue) {
-    bestCategoryName.textContent = bestCategory.category_name;
-    bestCategoryRevenue.textContent = formatCurrency(bestCategory.revenue_amount);
+  const brandCounts = new Map();
+  state.products.forEach((product) => {
+    if (!product.brand) {
+      return;
+    }
+    brandCounts.set(product.brand, (brandCounts.get(product.brand) || 0) + 1);
+  });
+  const brands = [...brandCounts.keys()].sort((a, b) => a.localeCompare(b));
+
+  filterBrandList.innerHTML = '';
+  brands.forEach((brand) => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = state.brands.has(brand);
+    checkbox.addEventListener('change', () => {
+      if (checkbox.checked) {
+        state.brands.add(brand);
+      } else {
+        state.brands.delete(brand);
+      }
+      renderProducts();
+    });
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(`${brand} (${brandCounts.get(brand)})`));
+    filterBrandList.appendChild(label);
+  });
+}
+
+async function loadTrending() {
+  if (!trendingRail) {
+    return;
   }
 
-  if (totalRevenue && totalRevenueAmount && totalRevenueOrders) {
-    totalRevenueAmount.textContent = formatCurrency(totalRevenue.total_revenue_amount);
-    totalRevenueOrders.textContent = `${totalRevenue.paid_order_count || 0} paid orders tracked`;
+  const trendingResponse = await fetchJson('/api/trending?limit=8');
+  const trendingItems = trendingResponse.items || [];
+  const trendingProducts = trendingItems
+    .map((item) => state.products.find((product) => Number(product.product_id ?? product.id) === Number(item.product_id)))
+    .filter(Boolean);
+
+  trendingRail.innerHTML = '';
+
+  if (trendingProducts.length === 0) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.className = 'browser-message';
+    emptyMessage.textContent = 'No trending data yet — check back once a few orders come in.';
+    trendingRail.appendChild(emptyMessage);
+    return;
   }
+
+  trendingProducts.forEach((product) => {
+    trendingRail.appendChild(createProductCard(product));
+  });
+}
+
+async function loadNewArrivals() {
+  if (!newArrivalsRail) {
+    return;
+  }
+
+  const response = await fetchJson('/api/products?sort=newest&limit=8');
+  const newArrivals = response.items || [];
+
+  newArrivalsRail.innerHTML = '';
+
+  if (newArrivals.length === 0) {
+    const emptyMessage = document.createElement('p');
+    emptyMessage.className = 'browser-message';
+    emptyMessage.textContent = 'No new arrivals yet.';
+    newArrivalsRail.appendChild(emptyMessage);
+    return;
+  }
+
+  newArrivals.forEach((product) => {
+    newArrivalsRail.appendChild(createProductCard(product));
+  });
+}
+
+const carouselSlides = document.querySelectorAll('.carousel-slide');
+const carouselDotsContainer = document.getElementById('carousel-dots');
+const carouselPrevButton = document.getElementById('carousel-prev');
+const carouselNextButton = document.getElementById('carousel-next');
+
+let carouselIndex = 0;
+let carouselTimer = null;
+
+function goToSlide(index) {
+  if (!carouselSlides.length) {
+    return;
+  }
+
+  carouselIndex = (index + carouselSlides.length) % carouselSlides.length;
+
+  carouselSlides.forEach((slide, i) => {
+    const isActive = i === carouselIndex;
+    slide.classList.toggle('is-active', isActive);
+    slide.setAttribute('aria-hidden', String(!isActive));
+  });
+
+  if (carouselDotsContainer) {
+    carouselDotsContainer.querySelectorAll('.carousel-dot').forEach((dot, i) => {
+      dot.classList.toggle('is-active', i === carouselIndex);
+    });
+  }
+}
+
+function startCarouselAutoplay() {
+  clearInterval(carouselTimer);
+  carouselTimer = setInterval(() => goToSlide(carouselIndex + 1), 6000);
+}
+
+function initHeroCarousel() {
+  if (!carouselSlides.length) {
+    return;
+  }
+
+  if (carouselDotsContainer) {
+    carouselDotsContainer.innerHTML = '';
+    carouselSlides.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'carousel-dot';
+      dot.setAttribute('aria-label', `Go to slide ${i + 1}`);
+      dot.addEventListener('click', () => {
+        goToSlide(i);
+        startCarouselAutoplay();
+      });
+      carouselDotsContainer.appendChild(dot);
+    });
+  }
+
+  carouselPrevButton?.addEventListener('click', () => {
+    goToSlide(carouselIndex - 1);
+    startCarouselAutoplay();
+  });
+  carouselNextButton?.addEventListener('click', () => {
+    goToSlide(carouselIndex + 1);
+    startCarouselAutoplay();
+  });
+
+  goToSlide(0);
+  startCarouselAutoplay();
 }
 
 async function loadUserPanel() {
@@ -378,8 +643,15 @@ async function loadUserPanel() {
 function handleSearchSubmit(event) {
   event.preventDefault();
   const formData = new FormData(event.currentTarget);
-  state.search = String(formData.get('search') || '').trim();
-  syncSearchInputs(state.search);
+  const query = String(formData.get('search') || '').trim();
+
+  if (!isOnProductBrowserPage()) {
+    window.location.href = query ? `products.html?search=${encodeURIComponent(query)}` : 'products.html';
+    return;
+  }
+
+  state.search = query;
+  syncSearchInputs(query);
   renderProducts();
   document.getElementById('product-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -392,18 +664,18 @@ function handleSearchInput(event) {
 
 async function initializeStorefront() {
   try {
-    await Promise.all([loadProducts(), loadDashboard(), loadUserPanel()]);
+    await loadProducts();
+    await Promise.all([loadTrending(), loadNewArrivals(), loadUserPanel()]);
   } catch (error) {
-    resultsSummary.textContent = 'Product search unavailable';
+    if (resultsSummary) {
+      resultsSummary.textContent = 'Product search unavailable';
+    }
     setBrowserMessage('The backend API is not reachable right now. Start the Python server to load live products.', true);
-    if (trendingName) {
-      trendingName.textContent = 'Backend offline';
+    if (trendingRail) {
+      trendingRail.innerHTML = '<p class="browser-message">Backend offline — trending products unavailable.</p>';
     }
-    if (bestCategoryName) {
-      bestCategoryName.textContent = 'Backend offline';
-    }
-    if (totalRevenueAmount) {
-      totalRevenueAmount.textContent = 'Backend offline';
+    if (newArrivalsRail) {
+      newArrivalsRail.innerHTML = '<p class="browser-message">Backend offline — new arrivals unavailable.</p>';
     }
     if (userName) {
       userName.textContent = 'Guest';
@@ -424,6 +696,8 @@ if (year) {
   year.textContent = String(new Date().getFullYear());
 }
 
+initHeroCarousel();
+
 if (menuToggle && categoryMenu) {
   menuToggle.addEventListener('click', () => {
     const isOpen = categoryMenu.classList.toggle('is-open');
@@ -443,28 +717,56 @@ if (menuToggle && categoryMenu) {
   });
 }
 
-if (heroSearchForm) {
-  heroSearchForm.addEventListener('submit', handleSearchSubmit);
-}
-
 if (headerSearchForm) {
   headerSearchForm.addEventListener('submit', handleSearchSubmit);
-}
-
-if (productSearchForm) {
-  productSearchForm.addEventListener('submit', handleSearchSubmit);
-}
-
-if (heroSearchInput) {
-  heroSearchInput.addEventListener('input', handleSearchInput);
 }
 
 if (headerSearchInput) {
   headerSearchInput.addEventListener('input', handleSearchInput);
 }
 
-if (productSearchInput) {
-  productSearchInput.addEventListener('input', handleSearchInput);
+if (filterMinPrice) {
+  filterMinPrice.addEventListener('input', () => {
+    state.minPrice = filterMinPrice.value;
+    renderProducts();
+  });
+}
+
+if (filterMaxPrice) {
+  filterMaxPrice.addEventListener('input', () => {
+    state.maxPrice = filterMaxPrice.value;
+    renderProducts();
+  });
+}
+
+if (filterInStock) {
+  filterInStock.addEventListener('change', () => {
+    state.inStock = filterInStock.checked;
+    renderProducts();
+  });
+}
+
+if (browserSortSelect) {
+  browserSortSelect.addEventListener('change', () => {
+    state.sort = browserSortSelect.value;
+    renderProducts();
+  });
+}
+
+if (filterClearButton) {
+  filterClearButton.addEventListener('click', () => {
+    state.minPrice = '';
+    state.maxPrice = '';
+    state.brands.clear();
+    state.inStock = false;
+    state.sort = 'name_asc';
+    if (filterMinPrice) filterMinPrice.value = '';
+    if (filterMaxPrice) filterMaxPrice.value = '';
+    if (filterInStock) filterInStock.checked = false;
+    if (browserSortSelect) browserSortSelect.value = 'name_asc';
+    renderBrandFilterList();
+    renderProducts();
+  });
 }
 
 initializeStorefront();

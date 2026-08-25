@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bluehaven Store</title>
+    <title>All Products - Bluehaven Store</title>
     <meta
       name="description"
-      content="Bluehaven Store is a modern online destination for electronics, phones, tablets, books, and everyday tech essentials."
+      content="Search and filter the full Bluehaven Store catalog of electronics, phones, tablets, books, and accessories."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -92,100 +92,77 @@
         </div>
       </header>
 
-      <main id="top">
-        <section class="hero-carousel" id="hero-carousel" aria-label="Featured promotions" aria-roledescription="carousel">
-          <div class="carousel-track" id="carousel-track">
-            <article class="carousel-slide" data-slide="0">
-              <div class="container carousel-slide-inner">
-                <div class="carousel-copy">
-                  <p class="eyebrow">This week</p>
-                  <h2>Blue Deal Days — save up to 20% on top electronics.</h2>
-                  <p>NovaBook Pro 15, Pulse X12 and AeroBuds Lite, now at a lower price with up to 24 interest-free installments.</p>
-                  <a class="button button-primary" href="products.html">Shop the deals</a>
-                </div>
-              </div>
-            </article>
-            <article class="carousel-slide" data-slide="1">
-              <div class="container carousel-slide-inner">
-                <div class="carousel-copy">
-                  <p class="eyebrow">New arrivals</p>
-                  <h2>The latest phones, tablets and laptops just landed.</h2>
-                  <p>Free delivery over &euro;50, and pickup at stores in Athens, Thessaloniki, Patras and Larissa.</p>
-                  <a class="button button-primary" href="#new-arrivals">See what's new</a>
-                </div>
-              </div>
-            </article>
-            <article class="carousel-slide" data-slide="2">
-              <div class="container carousel-slide-inner">
-                <div class="carousel-copy">
-                  <p class="eyebrow">Flexible payments</p>
-                  <h2>Split any purchase into up to 24 installments.</h2>
-                  <p>No hidden fees — choose your plan at checkout on eligible products.</p>
-                  <a class="button button-primary" href="products.html">Browse products</a>
-                </div>
-              </div>
-            </article>
-          </div>
-
-          <button class="carousel-arrow carousel-arrow-prev" type="button" id="carousel-prev" aria-label="Previous slide">&#10094;</button>
-          <button class="carousel-arrow carousel-arrow-next" type="button" id="carousel-next" aria-label="Next slide">&#10095;</button>
-
-          <div class="carousel-dots" id="carousel-dots" role="tablist" aria-label="Slide selector"></div>
-        </section>
-
-        <section class="section" id="trending">
+      <main>
+        <section class="section section-muted" id="featured">
           <div class="container">
             <div class="section-heading split-heading">
               <div>
-                <p class="eyebrow">Trending now</p>
-                <h2>Bestsellers this week</h2>
+                <p class="eyebrow">Full catalog</p>
+                <h1>Search and filter everything we stock.</h1>
               </div>
-              <a class="text-link" href="products.html?sort=newest">View all products</a>
+              <a class="text-link" href="index.html#trending">See what's trending</a>
             </div>
-            <div class="trending-rail" id="trending-rail" aria-live="polite">
-              <p class="browser-message">Loading trending products&hellip;</p>
-            </div>
-          </div>
-        </section>
 
-        <section class="section section-tight section-muted" id="new-arrivals">
-          <div class="container">
-            <div class="section-heading split-heading">
-              <div>
-                <p class="eyebrow">New arrivals</p>
-                <h2>Fresh in the catalog</h2>
+            <section class="product-browser" id="product-browser" aria-label="Product search and results">
+              <div class="browser-toolbar">
+                <p id="results-summary">Loading products</p>
+                <div class="browser-sort">
+                  <label for="browser-sort-select">Sort by</label>
+                  <select id="browser-sort-select">
+                    <option value="name_asc">Name A&ndash;Z</option>
+                    <option value="price_asc">Price: low to high</option>
+                    <option value="price_desc">Price: high to low</option>
+                    <option value="newest">Newest arrivals</option>
+                  </select>
+                </div>
               </div>
-              <a class="text-link" href="products.html?sort=newest">See all new arrivals</a>
-            </div>
-            <div class="trending-rail" id="new-arrivals-rail" aria-live="polite">
-              <p class="browser-message">Loading new arrivals&hellip;</p>
-            </div>
-          </div>
-        </section>
 
-        <section class="section section-tight" id="news">
-          <div class="container">
-            <div class="section-heading">
-              <p class="eyebrow">News</p>
-              <h2>Latest from Bluehaven</h2>
-            </div>
-            <div class="news-grid">
-              <article class="news-card">
-                <span class="news-date">Aug 2026</span>
-                <h3>New store opening in Heraklion</h3>
-                <p>Our fifth physical location opens this spring, bringing pickup and support closer to Crete.</p>
-              </article>
-              <article class="news-card">
-                <span class="news-date">Jul 2026</span>
-                <h3>Extended warranty included</h3>
-                <p>All laptops and tablets now ship with an extra 6 months of warranty at no extra cost.</p>
-              </article>
-              <article class="news-card">
-                <span class="news-date">Jul 2026</span>
-                <h3>Weekly restocks</h3>
-                <p>New shipments arrive every week — check new arrivals to see what's just landed.</p>
-              </article>
-            </div>
+              <div class="product-browser-body">
+                <aside class="browser-sidebar" aria-label="Product filters">
+                  <div class="browser-sidebar-head">
+                    <h2>Filters</h2>
+                    <button class="filter-clear-button" type="button" id="filter-clear-button">Clear all</button>
+                  </div>
+
+                  <div class="filter-group">
+                    <span class="filter-group-title">Category</span>
+                    <div class="category-filters" id="category-filters" aria-label="Category filters"></div>
+                  </div>
+
+                  <div class="filter-divider"></div>
+
+                  <div class="filter-group">
+                    <span class="filter-group-title">Price</span>
+                    <div class="filter-range-inputs">
+                      <input id="filter-min-price" type="number" min="0" step="1" placeholder="Min" aria-label="Minimum price" />
+                      <span aria-hidden="true">&ndash;</span>
+                      <input id="filter-max-price" type="number" min="0" step="1" placeholder="Max" aria-label="Maximum price" />
+                    </div>
+                  </div>
+
+                  <div class="filter-divider"></div>
+
+                  <div class="filter-group">
+                    <span class="filter-group-title">Brand</span>
+                    <div class="filter-checkbox-list" id="filter-brand-list"></div>
+                  </div>
+
+                  <div class="filter-divider"></div>
+
+                  <div class="filter-group">
+                    <label>
+                      <input id="filter-in-stock" type="checkbox" />
+                      In stock only
+                    </label>
+                  </div>
+                </aside>
+
+                <div>
+                  <div class="products-grid" id="products-grid" aria-live="polite"></div>
+                  <p class="browser-message" id="browser-message" hidden></p>
+                </div>
+              </div>
+            </section>
           </div>
         </section>
       </main>

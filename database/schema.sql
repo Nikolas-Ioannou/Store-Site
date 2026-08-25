@@ -13,7 +13,9 @@ CREATE TABLE IF NOT EXISTS products (
     name TEXT NOT NULL,
     category_id INTEGER NOT NULL,
     brand TEXT,
-    cost DECIMAL(10, 2) NOT NULL CHECK (cost >= 0),
+    buying_price DECIMAL(10, 2) CHECK (buying_price IS NULL OR buying_price >= 0),
+    selling_price DECIMAL(10, 2) NOT NULL CHECK (selling_price >= 0),
+    compare_at_price DECIMAL(10, 2) CHECK (compare_at_price IS NULL OR compare_at_price >= 0),
     currency_code TEXT NOT NULL DEFAULT 'EUR',
     release_date TEXT,
     description TEXT NOT NULL,
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS products (
     addon_depth_cm DECIMAL(8, 2),
     addon_height_cm DECIMAL(8, 2),
     has_addon INTEGER NOT NULL DEFAULT 0 CHECK (has_addon IN (0, 1)),
+    max_installments INTEGER CHECK (max_installments IS NULL OR max_installments >= 2),
     stock_quantity INTEGER NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
     is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -65,6 +68,20 @@ CREATE TABLE IF NOT EXISTS users (
     last_login_at TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS product_reviews (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    title TEXT,
+    body TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE (product_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS user_addresses (
@@ -290,6 +307,27 @@ CREATE TABLE IF NOT EXISTS warehouses (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Customer-visitable physical stores (distinct from warehouses, which are
+-- backend fulfillment centers). Powers the "pick up from store" product page.
+CREATE TABLE IF NOT EXISTS stores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    location TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS store_inventory (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    store_id INTEGER NOT NULL,
+    product_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+    UNIQUE (store_id, product_id)
+);
+
 CREATE TABLE IF NOT EXISTS inventory_movements (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,
@@ -324,6 +362,7 @@ CREATE INDEX IF NOT EXISTS idx_products_release_date ON products(release_date);
 CREATE INDEX IF NOT EXISTS idx_products_is_active ON products(is_active);
 CREATE INDEX IF NOT EXISTS idx_product_photos_product_id ON product_photos(product_id);
 CREATE INDEX IF NOT EXISTS idx_product_description_photos_product_id ON product_description_photos(product_id);
+CREATE INDEX IF NOT EXISTS idx_store_inventory_product_id ON store_inventory(product_id);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id ON user_addresses(user_id);
 CREATE INDEX IF NOT EXISTS idx_invoice_profiles_user_id ON invoice_profiles(user_id);
@@ -423,6 +462,15 @@ BEGIN
     WHERE id = OLD.id;
 END;
 
+CREATE TRIGGER IF NOT EXISTS trg_product_reviews_updated_at
+AFTER UPDATE ON product_reviews
+FOR EACH ROW
+BEGIN
+    UPDATE product_reviews
+    SET updated_at = CURRENT_TIMESTAMP
+    WHERE id = OLD.id;
+END;
+
 CREATE TRIGGER IF NOT EXISTS trg_users_updated_at
 AFTER UPDATE ON users
 FOR EACH ROW
@@ -495,7 +543,11 @@ BEGIN
     WHERE id = OLD.id;
 END;
 
-CREATE VIEW IF NOT EXISTS view_product_catalog AS
+-- Recreated (not just IF NOT EXISTS) so column additions reach databases where
+-- this view was already created by an earlier server run.
+DROP VIEW IF EXISTS view_product_catalog;
+
+CREATE VIEW view_product_catalog AS
 SELECT
     p.id AS product_id,
     p.sku,
@@ -503,14 +555,18 @@ SELECT
     c.name AS category_name,
     c.slug AS category_slug,
     p.brand,
-    p.cost,
+    p.selling_price AS cost,
+    p.compare_at_price,
     p.currency_code,
     p.release_date,
     p.description,
     p.stock_quantity,
     p.has_addon,
+    p.max_installments,
     pp.photo_url AS primary_photo_url,
     pp.alt_text AS primary_photo_alt,
+    COALESCE(pr.avg_rating, 0) AS avg_rating,
+    COALESCE(pr.review_count, 0) AS review_count,
     p.is_active,
     p.created_at,
     p.updated_at
@@ -518,7 +574,12 @@ FROM products p
 INNER JOIN categories c ON c.id = p.category_id
 LEFT JOIN product_photos pp
     ON pp.product_id = p.id
-    AND pp.is_primary = 1;
+    AND pp.is_primary = 1
+LEFT JOIN (
+    SELECT product_id, AVG(rating) AS avg_rating, COUNT(*) AS review_count
+    FROM product_reviews
+    GROUP BY product_id
+) pr ON pr.product_id = p.id;
 
 CREATE VIEW IF NOT EXISTS view_trending_products AS
 WITH ordered_units AS (

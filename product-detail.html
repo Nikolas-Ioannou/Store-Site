@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Details - Bluehaven Store</title>
+    <meta name="description" content="Bluehaven Store product details page" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .product-detail-page {
+        padding: 40px 0;
+      }
+
+      .back-link {
+        display: inline-flex;
+        color: var(--primary);
+        margin-bottom: 24px;
+        font-weight: 500;
+        text-decoration: none;
+      }
+
+      .breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 20px;
+      }
+
+      .breadcrumb a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      .breadcrumb a:hover {
+        text-decoration: underline;
+      }
+
+      .breadcrumb .breadcrumb-current {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .product-detail-layout {
+        display: grid;
+        grid-template-columns: 0.95fr 1.15fr 0.9fr;
+        gap: 40px;
+        margin-bottom: 40px;
+        align-items: start;
+      }
+
+      /* LEFT: Photos */
+      .product-photos {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .main-photo {
+        width: 100%;
+        aspect-ratio: 1;
+        background: var(--surface-alt);
+        border-radius: var(--radius);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .main-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        padding: 40px;
+      }
+
+      .photo-thumbnails {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+      }
+
+      .thumb-btn {
+        aspect-ratio: 1;
+        border: 2px solid var(--line);
+        border-radius: 12px;
+        background: var(--surface);
+        cursor: pointer;
+        padding: 8px;
+        transition: all 0.2s;
+      }
+
+      .thumb-btn:hover {
+        border-color: var(--primary);
+      }
+
+      .thumb-btn.active {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px var(--primary);
+      }
+
+      .thumb-btn img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      /* MIDDLE: Info */
+      .product-info {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .highlight-list {
+        margin: 0;
+        padding-left: 20px;
+        display: grid;
+        gap: 6px;
+        color: var(--text);
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      /* RIGHT: Buy box */
+      .buy-box {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: rgba(255, 255, 255, 0.96);
+        box-shadow: var(--shadow);
+        position: sticky;
+        top: 96px;
+      }
+
+      .buy-box-price {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .buy-box-discount {
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: #d23c3c;
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 800;
+      }
+
+      .stock-status {
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .stock-status.in-stock {
+        color: #1a9d5c;
+      }
+
+      .stock-status.low-stock {
+        color: #d97706;
+      }
+
+      .stock-status.out-of-stock {
+        color: #d23c3c;
+      }
+
+      .buy-box-divider {
+        border-top: 1px solid var(--line);
+      }
+
+      .rating-breakdown {
+        display: grid;
+        gap: 6px;
+        margin-top: 4px;
+      }
+
+      .rating-breakdown-row {
+        display: grid;
+        grid-template-columns: 34px 1fr 28px;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .rating-breakdown-track {
+        height: 8px;
+        border-radius: 999px;
+        background: var(--surface-alt);
+        overflow: hidden;
+      }
+
+      .rating-breakdown-fill {
+        height: 100%;
+        background: #f5a623;
+      }
+
+      .product-name-section {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .product-name-section h1 {
+        font-size: 2rem;
+        margin: 0;
+      }
+
+      .product-code {
+        font-size: 0.875rem;
+        color: var(--muted);
+      }
+
+      .product-price {
+        font-size: 2.5rem;
+        color: var(--primary);
+        font-weight: 700;
+      }
+
+      .description-text {
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      /* MANUFACTURER SECTION */
+      .manufacturer-info {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        background: var(--surface-alt);
+        border-radius: 12px;
+      }
+
+      .mfg-logo {
+        width: 60px;
+        height: 60px;
+        background: var(--surface);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 24px;
+        color: var(--primary);
+        flex-shrink: 0;
+      }
+
+      .mfg-details {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .mfg-name {
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .mfg-desc {
+        font-size: 0.8rem;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      /* KEY SPECS */
+      .key-specs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .spec-item {
+        padding: 12px;
+        background: var(--surface-alt);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .spec-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+
+      .spec-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* PURCHASE OPTIONS */
+      .purchase-option {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .option-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+      }
+
+      .option-detail {
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+
+      .store-select {
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+
+      .qty-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        width: fit-content;
+      }
+
+      .qty-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .qty-input {
+        width: 40px;
+        text-align: center;
+        border: none;
+        background: transparent;
+        font-weight: 600;
+      }
+
+      .add-to-cart-btn {
+        width: 100%;
+        padding: 10px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+
+      .add-to-cart-btn:hover {
+        background: var(--primary-deep);
+      }
+
+      @media (max-width: 720px) {
+        .product-detail-layout {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+
+        .product-photos {
+          order: 1;
+        }
+
+        .buy-box {
+          order: 2;
+          position: static;
+        }
+
+        .product-info {
+          order: 3;
+        }
+
+        .key-specs {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* RATING + INSTALLMENTS */
+      .rating-summary {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      .rating-stars {
+        color: #f5a623;
+        letter-spacing: 1px;
+      }
+
+      .installment-note {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      /* REVIEWS */
+      .reviews-section {
+        padding-top: 32px;
+        margin-top: 8px;
+        border-top: 1px solid var(--line);
+      }
+
+      .review-list {
+        display: grid;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      .review-card {
+        padding: 16px;
+        background: var(--surface-alt);
+        border-radius: 12px;
+      }
+
+      .review-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+
+      .review-author {
+        font-weight: 700;
+      }
+
+      .review-date {
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .review-title {
+        font-weight: 700;
+        margin: 4px 0;
+      }
+
+      .review-body {
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 0;
+      }
+
+      .review-empty,
+      .review-signin-prompt {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .review-form {
+        display: grid;
+        gap: 10px;
+        padding: 16px;
+        background: var(--surface-alt);
+        border-radius: 12px;
+        max-width: 420px;
+      }
+
+      .review-form label {
+        display: grid;
+        gap: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      .review-form select,
+      .review-form input,
+      .review-form textarea {
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 0.9rem;
+      }
+
+      .review-form-message {
+        font-size: 0.85rem;
+        color: var(--primary-deep);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="utility-bar">
+        <div class="container utility-links">
+          <a href="tel:+302101234567">
+            <img src="Photos/telephone.png" alt="" />
+            Customer service: 210 123 4567
+          </a>
+          <a href="products.html">
+            <img src="Photos/delivery-truck.png" alt="" />
+            Free shipping over &euro;50
+          </a>
+          <a href="products.html">
+            <img src="Photos/box.png" alt="" />
+            Store pickup available
+          </a>
+        </div>
+      </div>
+
+      <header class="site-header">
+        <div class="container header-inner">
+          <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+            <span class="brand-mark">B</span>
+            <span class="brand-copy">
+              <strong>Bluehaven</strong>
+              <small>Tech and Books Marketplace</small>
+            </span>
+          </a>
+
+          <div class="menu-hub">
+            <a class="menu-toggle" href="products.html">
+              <span aria-hidden="true">&#9776;</span> Products
+            </a>
+          </div>
+
+          <div class="header-search">
+            <form class="header-search-form" id="header-search-form" role="search">
+              <span class="header-search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <circle cx="11" cy="11" r="6.5"></circle>
+                  <path d="M16 16L21 21"></path>
+                </svg>
+              </span>
+              <input
+                class="header-search-input"
+                id="header-search-input"
+                name="search"
+                type="search"
+                placeholder="Search products, brands, books"
+                aria-label="Search products"
+              />
+            </form>
+          </div>
+
+          <nav class="header-shortcuts" aria-label="Quick links">
+            <a class="header-icon-link" data-favorites-link="true" href="profile.html#favorites-card" aria-label="Go to favorites section">
+              <img class="shortcut-icon shortcut-icon-heart" src="Photos/heart.png" alt="" />
+            </a>
+            <a class="header-icon-link" href="profile.html" aria-label="Go to profile page">
+              <img class="shortcut-icon shortcut-icon-profile" src="Photos/user.png" alt="" />
+            </a>
+            <a class="header-icon-link" href="basket.html" aria-label="Go to basket page">
+              <img class="shortcut-icon shortcut-icon-basket" src="Photos/shopping-cart.png" alt="" />
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <div class="container product-detail-page">
+          <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb">
+            <a href="index.html">Home</a>
+          </nav>
+
+          <div class="product-detail-layout">
+            <!-- LEFT: PHOTOS -->
+            <div class="product-photos">
+              <div class="main-photo">
+                <img id="mainPhoto" src="" alt="Product" />
+              </div>
+              <div class="photo-thumbnails" id="thumbnails"></div>
+            </div>
+
+            <!-- MIDDLE: INFO -->
+            <div class="product-info">
+              <!-- Name & Code -->
+              <div class="product-name-section">
+                <h1 id="productName"></h1>
+                <div class="product-code">Product code: <span id="productCode"></span></div>
+                <div class="rating-summary" id="ratingSummary" hidden>
+                  <span class="rating-stars" id="ratingStars"></span>
+                  <span id="ratingText"></span>
+                </div>
+              </div>
+
+              <!-- Highlights -->
+              <ul class="highlight-list" id="highlightList"></ul>
+
+              <!-- Description -->
+              <div class="description-text" id="productDescription"></div>
+
+              <!-- Manufacturer -->
+              <div class="manufacturer-info" id="manufacturerInfo">
+                <div class="mfg-logo" id="mfgLogo">B</div>
+                <div class="mfg-details">
+                  <div class="mfg-name" id="mfgName">Brand</div>
+                  <div class="mfg-desc" id="mfgDesc">Manufacturer description</div>
+                </div>
+              </div>
+
+              <!-- Key Specs -->
+              <div>
+                <h3 style="margin: 0 0 12px 0; font-size: 0.95rem;">Key Specifications</h3>
+                <div class="key-specs" id="keySpecs"></div>
+              </div>
+            </div>
+
+            <!-- RIGHT: BUY BOX -->
+            <aside class="buy-box" aria-label="Purchase options">
+              <div class="buy-box-price">
+                <div class="product-price" id="productPrice"></div>
+                <span class="buy-box-discount" id="productDiscountBadge" hidden></span>
+              </div>
+              <div class="installment-note" id="installmentNote" hidden></div>
+              <div class="stock-status" id="stockStatus"></div>
+
+              <!-- Delivery -->
+              <div class="purchase-option">
+                <div class="option-title">🚚 Delivery to Home</div>
+                <div class="option-detail">Expected: <span id="deliveryDate"></span></div>
+                <div class="qty-control">
+                  <button class="qty-btn" id="qtyMinusDelivery">−</button>
+                  <input type="number" class="qty-input" id="qtyDelivery" value="1" min="1" readonly />
+                  <button class="qty-btn" id="qtyPlusDelivery">+</button>
+                </div>
+                <button class="add-to-cart-btn" id="addDeliveryBtn">Add to Cart</button>
+              </div>
+
+              <div class="buy-box-divider"></div>
+
+              <!-- Pickup -->
+              <div class="purchase-option">
+                <div class="option-title">🏪 Pick Up from Store</div>
+                <select class="store-select" id="storeSelect">
+                  <option value="">Select store...</option>
+                </select>
+                <div id="storeInfo" style="font-size: 0.8rem; color: var(--muted);"></div>
+                <div class="qty-control">
+                  <button class="qty-btn" id="qtyMinusPickup">−</button>
+                  <input type="number" class="qty-input" id="qtyPickup" value="1" min="1" readonly />
+                  <button class="qty-btn" id="qtyPlusPickup">+</button>
+                </div>
+                <button class="add-to-cart-btn" id="addPickupBtn">Add to Cart</button>
+              </div>
+            </aside>
+          </div>
+
+          <section class="reviews-section" aria-label="Customer reviews">
+            <h3 style="margin: 0 0 16px 0; font-size: 0.95rem;">Customer reviews</h3>
+            <div class="rating-breakdown" id="ratingBreakdown" hidden></div>
+            <div class="review-list" id="reviewList"></div>
+            <div id="reviewFormWrap"></div>
+          </section>
+        </div>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-inner-grid">
+          <div class="footer-brand-col">
+            <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+              <span class="brand-mark">B</span>
+              <span class="brand-copy">
+                <strong>Bluehaven</strong>
+                <small>Tech and Books Marketplace</small>
+              </span>
+            </a>
+            <p class="footer-tagline">Your one-stop shop for electronics, phones, tablets and books.</p>
+            <div class="footer-socials" aria-label="Social links">
+              <a href="#" aria-label="Facebook"><img src="Photos/facebook.png" alt="Facebook" /></a>
+              <a href="#" aria-label="Instagram"><img src="Photos/instagram.png" alt="Instagram" /></a>
+              <a href="#" aria-label="YouTube"><img src="Photos/youtube.png" alt="YouTube" /></a>
+            </div>
+          </div>
+
+          <nav class="footer-nav-col" aria-label="Store navigation">
+            <strong class="footer-nav-heading">Store</strong>
+            <ul class="footer-nav-list">
+              <li><a href="index.html">Home</a></li>
+              <li><a href="products.html">Products</a></li>
+              <li><a href="basket.html">Basket</a></li>
+              <li><a href="favorites.html">Favorites</a></li>
+            </ul>
+          </nav>
+
+          <nav class="footer-nav-col" aria-label="Account navigation">
+            <strong class="footer-nav-heading">Account</strong>
+            <ul class="footer-nav-list">
+              <li><a href="profile.html">My profile</a></li>
+              <li><a href="profile.html#pending-orders-card">Orders</a></li>
+              <li><a href="profile.html#addresses-data-card">Addresses</a></li>
+              <li><a href="profile.html#invoice-data-card">Invoice data</a></li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="container footer-payments" aria-label="Secure payment methods">
+          <span class="footer-payments-label">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+            Secure payments
+          </span>
+          <div class="payment-strip">
+            <img src="Photos/visa.avif" alt="Visa" />
+            <img src="Photos/mastercard.avif" alt="Mastercard" />
+            <img src="Photos/paypal.avif" alt="PayPal" />
+            <img src="Photos/amex.avif" alt="American Express" />
+            <img src="Photos/maestro.avif" alt="Maestro" />
+            <img src="Photos/diners.avif" alt="Diners Club" />
+            <img src="Photos/visa-verify.avif" alt="Verified by Visa" />
+            <img src="Photos/securecode.avif" alt="Mastercard SecureCode" />
+            <img src="Photos/safekey.avif" alt="American Express SafeKey" />
+            <img src="Photos/symantec.avif" alt="Symantec" />
+          </div>
+        </div>
+
+        <div class="container footer-copyright">
+          <p>&copy; <span class="footer-year"></span> Bluehaven Store. All rights reserved.</p>
+          <nav class="footer-legal" aria-label="Legal links">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms of Use</a>
+            <a href="#">Cookies</a>
+          </nav>
+        </div>
+      </footer>
+    </div>
+
+    <script src="site.js"></script>
+    <script src="product-detail.js"></script>
+  </body>
+</html>

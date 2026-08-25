@@ -24,8 +24,19 @@ class StoreDatabase:
     def initialize(self) -> None:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
+            # Must run before executescript, and after dropping any existing view:
+            # schema.sql's view references the new column name, and SQLite's RENAME
+            # COLUMN validates dependent views at rename time — a view that already
+            # references the new name (e.g. left over from an interrupted prior run,
+            # since executescript auto-commits DDL immediately) makes the rename fail
+            # with "no such column" even though CREATE VIEW itself is lazily validated.
+            connection.execute('DROP VIEW IF EXISTS view_product_catalog')
+            self._ensure_column_renamed(connection, 'products', 'cost', 'selling_price')
             connection.executescript(SCHEMA_PATH.read_text())
             self._ensure_column(connection, 'users', 'landline', 'TEXT')
+            self._ensure_column(connection, 'products', 'max_installments', 'INTEGER')
+            self._ensure_column(connection, 'products', 'buying_price', 'DECIMAL(10, 2)')
+            self._ensure_column(connection, 'products', 'compare_at_price', 'DECIMAL(10, 2)')
             self._ensure_invoice_profiles_table(connection)
             category_count = connection.execute(
                 'SELECT COUNT(*) FROM categories'
@@ -42,6 +53,14 @@ class StoreDatabase:
         }
         if column_name not in existing_columns:
             connection.execute(f'ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}')
+
+    def _ensure_column_renamed(self, connection: sqlite3.Connection, table_name: str, old_name: str, new_name: str) -> None:
+        existing_columns = {
+            row['name']
+            for row in connection.execute(f'PRAGMA table_info({table_name})').fetchall()
+        }
+        if old_name in existing_columns and new_name not in existing_columns:
+            connection.execute(f'ALTER TABLE {table_name} RENAME COLUMN {old_name} TO {new_name}')
 
     def _ensure_invoice_profiles_table(self, connection: sqlite3.Connection) -> None:
         create_sql = connection.execute(

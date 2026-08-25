@@ -8,6 +8,23 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+    <div class="utility-bar">
+      <div class="container utility-links">
+        <a href="tel:+302101234567">
+          <img src="Photos/telephone.png" alt="" />
+          Customer service: 210 123 4567
+        </a>
+        <a href="products.html">
+          <img src="Photos/delivery-truck.png" alt="" />
+          Free shipping over &euro;50
+        </a>
+        <a href="products.html">
+          <img src="Photos/box.png" alt="" />
+          Store pickup available
+        </a>
+      </div>
+    </div>
+
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="Bluehaven Store home">
@@ -18,8 +35,14 @@
           </span>
         </a>
 
+        <div class="menu-hub">
+          <a class="menu-toggle" href="products.html">
+            <span aria-hidden="true">&#9776;</span> Products
+          </a>
+        </div>
+
         <div class="header-search">
-          <form class="header-search-form" action="index.html#product-browser" role="search">
+          <form class="header-search-form" action="products.html" role="search">
             <span class="header-search-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false">
                 <circle cx="11" cy="11" r="6.5"></circle>
@@ -162,7 +185,7 @@
           <strong class="footer-nav-heading">Store</strong>
           <ul class="footer-nav-list">
             <li><a href="index.html">Home</a></li>
-            <li><a href="index.html#product-browser">Products</a></li>
+            <li><a href="products.html">Products</a></li>
             <li><a href="basket.html">Basket</a></li>
             <li><a href="favorites.html">Favorites</a></li>
           </ul>
