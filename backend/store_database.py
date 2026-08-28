@@ -37,6 +37,7 @@ class StoreDatabase:
             self._ensure_column(connection, 'products', 'max_installments', 'INTEGER')
             self._ensure_column(connection, 'products', 'buying_price', 'DECIMAL(10, 2)')
             self._ensure_column(connection, 'products', 'compare_at_price', 'DECIMAL(10, 2)')
+            self._ensure_column(connection, 'categories', 'sort_order', 'INTEGER NOT NULL DEFAULT 0')
             self._ensure_invoice_profiles_table(connection)
             category_count = connection.execute(
                 'SELECT COUNT(*) FROM categories'

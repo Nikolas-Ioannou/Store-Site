@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Profile | Bluehaven Store</title>
+    <title>Profile | Bazaar Store</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -27,11 +27,11 @@
 
     <header class="site-header">
       <div class="container header-inner">
-        <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+        <a class="brand" href="index.html" aria-label="Bazaar Store home">
           <span class="brand-mark">B</span>
           <span class="brand-copy">
-            <strong>Bluehaven</strong>
-            <small>Tech and Books Marketplace</small>
+            <strong>Bazaar</strong>
+            <small>Store</small>
           </span>
         </a>
 
@@ -76,47 +76,20 @@
     <main class="standalone-page profile-page-shell">
       <section class="profile-auth-layout">
         <article class="auth-panel auth-panel-intro" id="auth-intro-panel">
-          <div class="intro-brand-row">
+          <div class="intro-logo">
             <span class="brand-mark">B</span>
-            <span class="intro-badge">Bluehaven ID</span>
+            <span class="intro-logo-text">
+              <strong>Bazaar</strong>
+              <small>Store</small>
+            </span>
           </div>
           <h1 class="intro-headline">Your store,<br>your account.</h1>
-          <p class="auth-copy">
-            Sign in to track orders, manage your profile and addresses, and save your favourite products.
-          </p>
-          <div class="intro-highlights">
-            <div class="intro-highlight">
-              <span class="intro-highlight-icon">
-                <img src="Photos/order.png" alt="" />
-              </span>
-              <div>
-                <strong>Orders</strong>
-                <span>Track pending and past orders in one place</span>
-              </div>
-            </div>
-            <div class="intro-highlight">
-              <span class="intro-highlight-icon">
-                <img src="Photos/home.png" alt="" />
-              </span>
-              <div>
-                <strong>Addresses</strong>
-                <span>Save shipping and billing addresses</span>
-              </div>
-            </div>
-            <div class="intro-highlight">
-              <span class="intro-highlight-icon">
-                <img src="Photos/heart.png" alt="" />
-              </span>
-              <div>
-                <strong>Favourites</strong>
-                <span>Keep a wishlist of products you love</span>
-              </div>
-            </div>
-          </div>
-          <div class="intro-actions">
-            <button class="button button-primary" id="intro-signup-button" type="button">Create account</button>
-            <a class="button button-ghost" href="index.html">Back to store</a>
-          </div>
+          <ul class="intro-benefits">
+            <li>Track pending and past orders in one place</li>
+            <li>Save shipping and billing addresses for faster checkout</li>
+            <li>Keep a wishlist of your favourite products</li>
+            <li>Access your personal coupons and installment plans</li>
+          </ul>
           <div class="intro-deco" aria-hidden="true"></div>
         </article>
 
@@ -250,7 +223,7 @@
                   <label class="auth-field auth-form-grid-full">
                     <span class="auth-field-label">Company name</span>
                     <div class="auth-input-wrap">
-                      <input type="text" name="company_name" placeholder="Bluehaven Ltd." />
+                      <input type="text" name="company_name" placeholder="Bazaar Ltd." />
                     </div>
                   </label>
                   <label class="auth-field">
@@ -306,6 +279,7 @@
                 </div>
                 <a class="account-side-link" data-section="coupons-card" href="#coupons-card">My coupons</a>
                 <a class="account-side-link" data-section="favorites-card" href="#favorites-card">Favorites</a>
+                <a class="account-side-link" id="admin-dashboard-link" href="admin.html" hidden>Admin dashboard</a>
                 <button class="account-side-link account-side-link-button account-side-link-danger" id="logout-button" type="button">Log out</button>
               </nav>
             </aside>
@@ -478,6 +452,14 @@
                     <p class="eyebrow">Orders</p>
                     <h3>Pending Orders</h3>
                   </div>
+                  <label class="page-size-select">
+                    <span>Show</span>
+                    <select id="orders-pending-page-size">
+                      <option value="4">4</option>
+                      <option value="8" selected>8</option>
+                      <option value="16">16</option>
+                    </select>
+                  </label>
                 </div>
                 <article class="summary-record-card profile-subsection-card orders-section-card">
                   <div class="account-orders-list" id="account-orders-pending-list">
@@ -493,6 +475,14 @@
                     <p class="eyebrow">Orders</p>
                     <h3>Completed Orders</h3>
                   </div>
+                  <label class="page-size-select">
+                    <span>Show</span>
+                    <select id="orders-completed-page-size">
+                      <option value="4">4</option>
+                      <option value="8" selected>8</option>
+                      <option value="16">16</option>
+                    </select>
+                  </label>
                 </div>
                 <article class="summary-record-card profile-subsection-card orders-section-card">
                   <div class="orders-toolbar">
@@ -525,6 +515,14 @@
                     <p class="eyebrow">Installments</p>
                     <h3>Pending Installments</h3>
                   </div>
+                  <label class="page-size-select">
+                    <span>Show</span>
+                    <select id="installments-pending-page-size">
+                      <option value="4">4</option>
+                      <option value="8" selected>8</option>
+                      <option value="16">16</option>
+                    </select>
+                  </label>
                 </div>
                 <article class="summary-record-card profile-subsection-card orders-section-card">
                   <div class="account-orders-list" id="account-installments-pending-list">
@@ -540,6 +538,14 @@
                     <p class="eyebrow">Installments</p>
                     <h3>Completed Installments</h3>
                   </div>
+                  <label class="page-size-select">
+                    <span>Show</span>
+                    <select id="installments-completed-page-size">
+                      <option value="4">4</option>
+                      <option value="8" selected>8</option>
+                      <option value="16">16</option>
+                    </select>
+                  </label>
                 </div>
                 <article class="summary-record-card profile-subsection-card orders-section-card">
                   <div class="account-orders-list" id="account-installments-completed-list">
@@ -567,7 +573,17 @@
                     <p class="eyebrow">Favorites</p>
                     <h3>Your Saved Products</h3>
                   </div>
-                  <p class="account-empty" id="favorites-results-summary">0 products</p>
+                  <div class="favorites-head-meta">
+                    <p class="account-empty" id="favorites-results-summary">0 products</p>
+                    <label class="page-size-select">
+                      <span>Show</span>
+                      <select id="favorites-page-size">
+                        <option value="12">12</option>
+                        <option value="24" selected>24</option>
+                        <option value="48">48</option>
+                      </select>
+                    </label>
+                  </div>
                 </div>
                 <div class="favorites-browser-toolbar">
                   <div class="favorites-search-panel">
@@ -594,14 +610,14 @@
     <footer class="site-footer">
       <div class="container footer-inner-grid">
         <div class="footer-brand-col">
-          <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+          <a class="brand" href="index.html" aria-label="Bazaar Store home">
             <span class="brand-mark">B</span>
             <span class="brand-copy">
-              <strong>Bluehaven</strong>
-              <small>Tech and Books Marketplace</small>
+              <strong>Bazaar</strong>
+              <small>Store</small>
             </span>
           </a>
-          <p class="footer-tagline">Your one-stop shop for electronics, phones, tablets and books.</p>
+          <p class="footer-tagline">Everything you need for tech, home, and everyday life.</p>
           <div class="footer-socials" aria-label="Social links">
             <a href="#" aria-label="Facebook"><img src="Photos/facebook.png" alt="Facebook" /></a>
             <a href="#" aria-label="Instagram"><img src="Photos/instagram.png" alt="Instagram" /></a>
@@ -646,7 +662,7 @@
         </div>
       </div>
       <div class="container footer-copyright">
-        <p>&copy; <span class="footer-year"></span> Bluehaven Store. All rights reserved.</p>
+        <p>&copy; <span class="footer-year"></span> Bazaar Store. All rights reserved.</p>
         <nav class="footer-legal" aria-label="Legal links">
           <a href="#">Privacy Policy</a>
           <a href="#">Terms of Use</a>

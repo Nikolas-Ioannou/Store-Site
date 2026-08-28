@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bluehaven Store</title>
+    <title>Bazaar Store</title>
     <meta
       name="description"
-      content="Bluehaven Store is a modern online destination for electronics, phones, tablets, books, and everyday tech essentials."
+      content="Bazaar Store is a modern online destination for electronics, phones, tablets, books, and everyday tech essentials."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,11 +38,11 @@
 
       <header class="site-header">
         <div class="container header-inner">
-          <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+          <a class="brand" href="index.html" aria-label="Bazaar Store home">
             <span class="brand-mark">B</span>
             <span class="brand-copy">
-              <strong>Bluehaven</strong>
-              <small>Tech and Books Marketplace</small>
+              <strong>Bazaar</strong>
+              <small>Store</small>
             </span>
           </a>
 
@@ -51,11 +51,10 @@
               <span aria-hidden="true">&#9776;</span> Products
             </button>
             <div class="category-menu" id="category-menu">
-              <div class="category-menu-header">
-                <strong>Shop by category</strong>
-                <small>Jump straight to a department</small>
+              <div class="category-menu-body">
+                <div class="category-menu-list" id="menu-categories"></div>
+                <div class="category-menu-flyout" id="category-menu-flyout" hidden></div>
               </div>
-              <div class="category-menu-list" id="menu-categories"></div>
             </div>
           </div>
 
@@ -133,18 +132,21 @@
           <div class="carousel-dots" id="carousel-dots" role="tablist" aria-label="Slide selector"></div>
         </section>
 
-        <section class="section" id="trending">
+        <section class="section section-muted" id="trending">
           <div class="container">
             <div class="section-heading split-heading">
               <div>
-                <p class="eyebrow">Trending now</p>
-                <h2>Bestsellers this week</h2>
+                <h2>Hot Offers</h2>
               </div>
-              <a class="text-link" href="products.html?sort=newest">View all products</a>
             </div>
-            <div class="trending-rail" id="trending-rail" aria-live="polite">
-              <p class="browser-message">Loading trending products&hellip;</p>
+            <div class="rail-viewport">
+              <button class="rail-arrow rail-arrow-prev" type="button" id="trending-prev" aria-label="Previous products" hidden>&#10094;</button>
+              <div class="rail-scroll" id="trending-rail" aria-live="polite">
+                <p class="browser-message">Loading trending products&hellip;</p>
+              </div>
+              <button class="rail-arrow rail-arrow-next" type="button" id="trending-next" aria-label="Next products" hidden>&#10095;</button>
             </div>
+            <div class="rail-dots" id="trending-dots"></div>
           </div>
         </section>
 
@@ -152,22 +154,24 @@
           <div class="container">
             <div class="section-heading split-heading">
               <div>
-                <p class="eyebrow">New arrivals</p>
-                <h2>Fresh in the catalog</h2>
+                <h2>New Releases</h2>
               </div>
-              <a class="text-link" href="products.html?sort=newest">See all new arrivals</a>
             </div>
-            <div class="trending-rail" id="new-arrivals-rail" aria-live="polite">
-              <p class="browser-message">Loading new arrivals&hellip;</p>
+            <div class="rail-viewport">
+              <button class="rail-arrow rail-arrow-prev" type="button" id="new-arrivals-prev" aria-label="Previous products" hidden>&#10094;</button>
+              <div class="rail-scroll" id="new-arrivals-rail" aria-live="polite">
+                <p class="browser-message">Loading new arrivals&hellip;</p>
+              </div>
+              <button class="rail-arrow rail-arrow-next" type="button" id="new-arrivals-next" aria-label="Next products" hidden>&#10095;</button>
             </div>
+            <div class="rail-dots" id="new-arrivals-dots"></div>
           </div>
         </section>
 
-        <section class="section section-tight" id="news">
+        <section class="section section-tight section-muted" id="news">
           <div class="container">
             <div class="section-heading">
-              <p class="eyebrow">News</p>
-              <h2>Latest from Bluehaven</h2>
+              <h2>News</h2>
             </div>
             <div class="news-grid">
               <article class="news-card">
@@ -193,14 +197,14 @@
       <footer class="site-footer">
         <div class="container footer-inner-grid">
           <div class="footer-brand-col">
-            <a class="brand" href="index.html" aria-label="Bluehaven Store home">
+            <a class="brand" href="index.html" aria-label="Bazaar Store home">
               <span class="brand-mark">B</span>
               <span class="brand-copy">
-                <strong>Bluehaven</strong>
-                <small>Tech and Books Marketplace</small>
+                <strong>Bazaar</strong>
+                <small>Store</small>
               </span>
             </a>
-            <p class="footer-tagline">Your one-stop shop for electronics, phones, tablets and books.</p>
+            <p class="footer-tagline">Everything you need for tech, home, and everyday life.</p>
             <div class="footer-socials" aria-label="Social links">
               <a href="#" aria-label="Facebook"><img src="Photos/facebook.png" alt="Facebook" /></a>
               <a href="#" aria-label="Instagram"><img src="Photos/instagram.png" alt="Instagram" /></a>
@@ -249,7 +253,7 @@
         </div>
 
         <div class="container footer-copyright">
-          <p>&copy; <span class="footer-year"></span> Bluehaven Store. All rights reserved.</p>
+          <p>&copy; <span class="footer-year"></span> Bazaar Store. All rights reserved.</p>
           <nav class="footer-legal" aria-label="Legal links">
             <a href="#">Privacy Policy</a>
             <a href="#">Terms of Use</a>

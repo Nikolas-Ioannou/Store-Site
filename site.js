@@ -3,6 +3,8 @@
   const FAVORITES_STORAGE_KEY = 'storeFavoriteProductIds';
   const CART_ID_STORAGE_KEY = 'storeCartId';
   const GUEST_TOKEN_STORAGE_KEY = 'storeGuestToken';
+  const SESSION_TOKEN_STORAGE_KEY = 'storeSessionToken';
+  const ROLE_STORAGE_KEY = 'storeUserRole';
 
   function getCurrentUserId() {
     try {
@@ -14,6 +16,22 @@
 
   function isLoggedIn() {
     return Boolean(getCurrentUserId());
+  }
+
+  function getSessionToken() {
+    try {
+      return window.localStorage.getItem(SESSION_TOKEN_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  }
+
+  function isAdmin() {
+    try {
+      return window.localStorage.getItem(ROLE_STORAGE_KEY) === 'admin';
+    } catch {
+      return false;
+    }
   }
 
   function normalizeFavoriteIds(ids) {
@@ -114,9 +132,181 @@
     return String(cart.id);
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]
+    ));
+  }
+
+  function formatCurrency(amount, currencyCode) {
+    const value = Number(amount) || 0;
+    try {
+      return new Intl.NumberFormat('en-IE', { style: 'currency', currency: currencyCode || 'EUR' }).format(value);
+    } catch {
+      return `€${value.toFixed(2)}`;
+    }
+  }
+
+  // Seed product photo_urls point at a placeholder domain that never resolves —
+  // mirrors the same product-name overrides script.js uses for real cards.
+  const LOCAL_PRODUCT_IMAGES = {
+    'NovaBook Pro 15': 'Photos/image.png',
+    'Pulse X12': 'Photos/iphone.png',
+    'SketchTab 11': 'Photos/image.png',
+    'AeroBuds Lite': 'Photos/social-media.png',
+  };
+
+  function getCartItemImageSource(item) {
+    return LOCAL_PRODUCT_IMAGES[item.product_name] || item.primary_photo_url || '';
+  }
+
+  const EMPTY_CART = { items: [], item_count: 0, subtotal_amount: 0, currency_code: 'EUR' };
+
+  async function fetchCartSummary() {
+    try {
+      const cartId = window.localStorage.getItem(CART_ID_STORAGE_KEY);
+      if (!cartId) {
+        return EMPTY_CART;
+      }
+      const response = await fetch(`/api/carts/${encodeURIComponent(cartId)}`);
+      if (!response.ok) {
+        return EMPTY_CART;
+      }
+      return await response.json();
+    } catch {
+      return EMPTY_CART;
+    }
+  }
+
+  function renderMiniCart(dropdown, cart) {
+    const items = Array.isArray(cart.items) ? cart.items : [];
+
+    if (items.length === 0) {
+      dropdown.innerHTML = '<div class="mini-cart-empty">Your basket is empty.</div>';
+      return;
+    }
+
+    const rows = items
+      .map((item) => `
+        <div class="mini-cart-item">
+          <img class="mini-cart-item-photo" src="${escapeHtml(getCartItemImageSource(item))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'" />
+          <div class="mini-cart-item-body">
+            <span class="mini-cart-item-name">${escapeHtml(item.product_name)}</span>
+            <span class="mini-cart-item-sku">${escapeHtml(item.sku || '')}</span>
+            <button class="mini-cart-item-remove" type="button" data-remove-item="${item.id}">Remove</button>
+          </div>
+          <div class="mini-cart-item-meta">
+            <span class="mini-cart-item-price">${formatCurrency(item.unit_price, cart.currency_code)}</span>
+            <span class="mini-cart-item-qty">x${item.quantity}</span>
+          </div>
+        </div>
+      `)
+      .join('');
+
+    dropdown.innerHTML = `
+      <div class="mini-cart-header">My basket (${cart.item_count || items.length})</div>
+      <div class="mini-cart-items">${rows}</div>
+      <div class="mini-cart-footer">
+        <div class="mini-cart-total"><span>Total</span><strong>${formatCurrency(cart.subtotal_amount, cart.currency_code)}</strong></div>
+        <a class="button button-primary mini-cart-checkout" href="basket.html">Go to checkout</a>
+      </div>
+    `;
+
+    dropdown.querySelectorAll('[data-remove-item]').forEach((button) => {
+      button.addEventListener('click', async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const cartId = window.localStorage.getItem(CART_ID_STORAGE_KEY);
+        if (!cartId) {
+          return;
+        }
+        await fetch(`/api/carts/${encodeURIComponent(cartId)}/items/${button.dataset.removeItem}`, { method: 'DELETE' });
+        window.dispatchEvent(new CustomEvent('store:cart-changed'));
+      });
+    });
+  }
+
+  async function refreshBasketWidgets() {
+    const cart = await fetchCartSummary();
+    const itemCount = Number(cart.item_count) || 0;
+
+    document.querySelectorAll('.basket-count-badge').forEach((badge) => {
+      badge.textContent = String(itemCount);
+      badge.hidden = itemCount === 0;
+    });
+
+    document.querySelectorAll('.mini-cart-dropdown').forEach((dropdown) => {
+      renderMiniCart(dropdown, cart);
+    });
+  }
+
+  function initBasketWidgets() {
+    const basketLinks = document.querySelectorAll('.header-icon-link[href="basket.html"]');
+    if (basketLinks.length === 0) {
+      return;
+    }
+
+    basketLinks.forEach((link) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'basket-menu';
+      link.parentNode.insertBefore(wrapper, link);
+      wrapper.appendChild(link);
+
+      const badge = document.createElement('span');
+      badge.className = 'basket-count-badge';
+      badge.hidden = true;
+      badge.textContent = '0';
+      link.appendChild(badge);
+
+      const dropdown = document.createElement('div');
+      dropdown.className = 'mini-cart-dropdown';
+      dropdown.hidden = true;
+      wrapper.appendChild(dropdown);
+
+      link.addEventListener('click', (event) => {
+        event.preventDefault();
+        const wasOpen = !dropdown.hidden;
+        document.querySelectorAll('.mini-cart-dropdown').forEach((el) => {
+          el.hidden = true;
+        });
+        dropdown.hidden = wasOpen;
+        if (!wasOpen) {
+          void refreshBasketWidgets();
+        }
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      document.querySelectorAll('.basket-menu').forEach((wrapper) => {
+        if (!wrapper.contains(event.target)) {
+          const dropdown = wrapper.querySelector('.mini-cart-dropdown');
+          if (dropdown) {
+            dropdown.hidden = true;
+          }
+        }
+      });
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        document.querySelectorAll('.mini-cart-dropdown').forEach((dropdown) => {
+          dropdown.hidden = true;
+        });
+      }
+    });
+
+    window.addEventListener('store:cart-changed', () => {
+      void refreshBasketWidgets();
+    });
+
+    void refreshBasketWidgets();
+  }
+
   window.StoreSite = {
     getCurrentUserId,
     isLoggedIn,
+    getSessionToken,
+    isAdmin,
     getFavoriteProductIds,
     setFavoriteProductIds,
     isFavoriteProduct,
@@ -129,6 +319,7 @@
   function initSite() {
     bindFavoritesLinks();
     setFooterYear();
+    initBasketWidgets();
   }
 
   if (document.readyState === 'loading') {

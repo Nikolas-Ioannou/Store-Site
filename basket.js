@@ -155,11 +155,13 @@
       body: JSON.stringify({ quantity }),
     });
     await refreshCart();
+    window.dispatchEvent(new CustomEvent('store:cart-changed'));
   }
 
   async function removeItem(itemId) {
     await fetchJson(`/api/carts/${cartId}/items/${itemId}`, { method: 'DELETE' });
     await refreshCart();
+    window.dispatchEvent(new CustomEvent('store:cart-changed'));
   }
 
   async function loadShippingMethods() {

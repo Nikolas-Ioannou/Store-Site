@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Dashboard - Bazaar Store</title>
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .admin-shell {
+        display: grid;
+        gap: 24px;
+        padding: 32px 0 64px;
+      }
+
+      .admin-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .admin-header-row h1 {
+        margin: 0 0 4px 0;
+        font-size: 1.6rem;
+      }
+
+      .admin-header-row p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .admin-tabs {
+        display: flex;
+        gap: 8px;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+
+      .admin-tab-button {
+        border: none;
+        background: none;
+        padding: 12px 18px;
+        font: inherit;
+        font-weight: 700;
+        color: var(--muted);
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+      }
+
+      .admin-tab-button.is-active {
+        color: var(--primary-deep);
+        border-bottom-color: var(--primary);
+      }
+
+      .admin-panel {
+        display: grid;
+        gap: 24px;
+      }
+
+      .admin-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 24px;
+      }
+
+      .admin-card h2 {
+        margin: 0 0 16px 0;
+        font-size: 1.1rem;
+      }
+
+      .admin-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+
+      .admin-form-grid .admin-field-full {
+        grid-column: 1 / -1;
+      }
+
+      .admin-field label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: var(--text);
+      }
+
+      .admin-field input,
+      .admin-field select,
+      .admin-field textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font: inherit;
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      .admin-field textarea {
+        min-height: 96px;
+        resize: vertical;
+      }
+
+      .admin-form-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 6px;
+      }
+
+      .admin-form-message {
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .admin-form-message.is-error {
+        color: #d23c3c;
+      }
+
+      .admin-form-message.is-success {
+        color: #1a9d5c;
+      }
+
+      .admin-table-wrap {
+        overflow-x: auto;
+      }
+
+      .admin-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.92rem;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+
+      .admin-table th {
+        color: var(--muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .admin-product-thumb {
+        width: 42px;
+        height: 42px;
+        border-radius: 10px;
+        object-fit: cover;
+        background: var(--surface-alt);
+      }
+
+      .admin-status-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .admin-status-pill.is-active {
+        background: rgba(16, 185, 129, 0.12);
+        color: #0d9e6e;
+      }
+
+      .admin-status-pill.is-inactive {
+        background: rgba(148, 163, 184, 0.2);
+        color: #58708f;
+      }
+
+      .admin-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+      }
+
+      .admin-stat-tile {
+        background: var(--surface-alt);
+        border-radius: var(--radius-sm);
+        padding: 18px;
+      }
+
+      .admin-stat-tile .admin-stat-value {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--primary-deep);
+      }
+
+      .admin-stat-tile .admin-stat-label {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .admin-two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+      }
+
+      .admin-mini-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .admin-mini-list-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 0.9rem;
+      }
+
+      .admin-mini-list-row strong {
+        font-weight: 700;
+      }
+
+      .admin-mini-list-row span {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .admin-empty-state {
+        color: var(--muted);
+        font-size: 0.9rem;
+        padding: 12px 0;
+      }
+
+      .admin-access-gate {
+        max-width: 480px;
+        margin: 80px auto;
+        text-align: center;
+        padding: 40px 32px;
+      }
+
+      @media (max-width: 760px) {
+        .admin-form-grid,
+        .admin-two-col {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="utility-bar">
+        <div class="container utility-links">
+          <a href="index.html">
+            <img src="Photos/delivery-truck.png" alt="" />
+            Back to storefront
+          </a>
+        </div>
+      </div>
+
+      <header class="site-header">
+        <div class="container header-inner">
+          <a class="brand" href="index.html" aria-label="Bazaar Store home">
+            <span class="brand-mark">B</span>
+            <span class="brand-copy">
+              <strong>Bazaar</strong>
+              <small>Admin Dashboard</small>
+            </span>
+          </a>
+          <nav class="header-shortcuts" aria-label="Quick links">
+            <a class="header-icon-link" href="profile.html" aria-label="Back to profile">
+              <img class="shortcut-icon shortcut-icon-profile" src="Photos/user.png" alt="" />
+            </a>
+          </nav>
+        </div>
+      </header>
+
+      <main>
+        <div class="container">
+          <div id="admin-access-gate" class="admin-card admin-access-gate" hidden>
+            <h2 id="admin-access-gate-title">Checking access&hellip;</h2>
+            <p id="admin-access-gate-message" class="admin-empty-state"></p>
+            <a class="button button-primary" href="profile.html">Go to profile</a>
+          </div>
+
+          <div id="admin-shell" class="admin-shell" hidden>
+            <div class="admin-header-row">
+              <div>
+                <h1>Admin Dashboard</h1>
+                <p>Add products, review orders, and check store performance.</p>
+              </div>
+            </div>
+
+            <nav class="admin-tabs" aria-label="Admin sections">
+              <button class="admin-tab-button is-active" type="button" data-admin-tab="products">Products</button>
+              <button class="admin-tab-button" type="button" data-admin-tab="orders">Orders</button>
+              <button class="admin-tab-button" type="button" data-admin-tab="stats">Statistics</button>
+            </nav>
+
+            <!-- PRODUCTS TAB -->
+            <section class="admin-panel" id="admin-panel-products">
+              <div class="admin-card">
+                <h2>Add a new product</h2>
+                <form id="admin-product-form" enctype="multipart/form-data">
+                  <div class="admin-form-grid">
+                    <div class="admin-field">
+                      <label for="admin-field-name">Product name</label>
+                      <input id="admin-field-name" name="name" type="text" required />
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-category">Category</label>
+                      <select id="admin-field-category" name="category_id" required></select>
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-brand">Brand (optional)</label>
+                      <input id="admin-field-brand" name="brand" type="text" />
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-price">Price (&euro;)</label>
+                      <input id="admin-field-price" name="price" type="number" min="0" step="0.01" required />
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-compare-price">Was-price (&euro;, optional)</label>
+                      <input id="admin-field-compare-price" name="compare_at_price" type="number" min="0" step="0.01" />
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-stock">Stock quantity</label>
+                      <input id="admin-field-stock" name="stock_quantity" type="number" min="0" step="1" value="0" />
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-installments">Max installments (optional)</label>
+                      <input id="admin-field-installments" name="max_installments" type="number" min="2" step="1" />
+                    </div>
+                    <div class="admin-field">
+                      <label for="admin-field-photos">Photos</label>
+                      <input id="admin-field-photos" name="photos" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple required />
+                    </div>
+                    <div class="admin-field admin-field-full">
+                      <label for="admin-field-description">Description</label>
+                      <textarea id="admin-field-description" name="description" required></textarea>
+                    </div>
+                  </div>
+                  <div class="admin-form-actions">
+                    <button class="button button-primary" type="submit" id="admin-product-submit">Add product</button>
+                    <span class="admin-form-message" id="admin-product-form-message"></span>
+                  </div>
+                </form>
+              </div>
+
+              <div class="admin-card">
+                <h2>All products</h2>
+                <div class="admin-table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th></th>
+                        <th>Code</th>
+                        <th>Name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="admin-products-table-body"></tbody>
+                  </table>
+                </div>
+                <p class="admin-empty-state" id="admin-products-empty" hidden>No products yet.</p>
+              </div>
+            </section>
+
+            <!-- ORDERS TAB -->
+            <section class="admin-panel" id="admin-panel-orders" hidden>
+              <div class="admin-card">
+                <h2>All orders</h2>
+                <div class="admin-table-wrap">
+                  <table class="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Payment</th>
+                        <th>Total</th>
+                        <th>Placed</th>
+                      </tr>
+                    </thead>
+                    <tbody id="admin-orders-table-body"></tbody>
+                  </table>
+                </div>
+                <p class="admin-empty-state" id="admin-orders-empty" hidden>No orders yet.</p>
+              </div>
+            </section>
+
+            <!-- STATISTICS TAB -->
+            <section class="admin-panel" id="admin-panel-stats" hidden>
+              <div class="admin-card">
+                <h2>Store overview</h2>
+                <div class="admin-stats-grid" id="admin-stats-grid"></div>
+              </div>
+
+              <div class="admin-two-col">
+                <div class="admin-card">
+                  <h2>Trending products</h2>
+                  <div class="admin-mini-list" id="admin-trending-list"></div>
+                </div>
+                <div class="admin-card">
+                  <h2>Best-selling categories</h2>
+                  <div class="admin-mini-list" id="admin-best-category-list"></div>
+                </div>
+              </div>
+
+              <div class="admin-card">
+                <h2>Low stock</h2>
+                <div class="admin-mini-list" id="admin-low-stock-list"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container footer-copyright">
+          <p>&copy; <span class="footer-year"></span> Bazaar Store. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
+
+    <script src="site.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>

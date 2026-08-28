@@ -1,9 +1,11 @@
 const CURRENT_USER_STORAGE_KEY = 'storeUserId';
 const SESSION_TOKEN_STORAGE_KEY = 'storeSessionToken';
+const ROLE_STORAGE_KEY = 'storeUserRole';
 
 const authIntroPanel = document.getElementById('auth-intro-panel');
 const authFormsPanel = document.getElementById('auth-forms-panel');
 const accountPanel = document.getElementById('account-panel');
+const adminDashboardLink = document.getElementById('admin-dashboard-link');
 const authMessage = document.getElementById('auth-message');
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
@@ -31,16 +33,21 @@ const accountInstallmentsPendingList = document.getElementById('account-installm
 const accountInstallmentsCompletedList = document.getElementById('account-installments-completed-list');
 const installmentsPendingPagination = document.getElementById('installments-pending-pagination');
 const installmentsCompletedPagination = document.getElementById('installments-completed-pagination');
+const installmentsPendingPageSize = document.getElementById('installments-pending-page-size');
+const installmentsCompletedPageSize = document.getElementById('installments-completed-page-size');
 const accountCouponsList = document.getElementById('account-coupons-list');
 const accountFavoritesList = document.getElementById('account-favorites-list');
 const favoritesResultsSummary = document.getElementById('favorites-results-summary');
 const favoritesSearchInput = document.getElementById('favorites-search-input');
 const favoritesFilterChips = document.getElementById('favorites-filter-chips');
 const favoritesPagination = document.getElementById('favorites-pagination');
+const favoritesPageSize = document.getElementById('favorites-page-size');
 const ordersSearchInput = document.getElementById('orders-search-input');
 const ordersDateFilter = document.getElementById('orders-date-filter');
 const ordersPendingPagination = document.getElementById('orders-pending-pagination');
 const ordersCompletedPagination = document.getElementById('orders-completed-pagination');
+const ordersPendingPageSize = document.getElementById('orders-pending-page-size');
+const ordersCompletedPageSize = document.getElementById('orders-completed-page-size');
 const personalEditButton = document.getElementById('personal-edit-button');
 const personalFormCard = document.getElementById('personal-form-card');
 const personalForm = document.getElementById('inline-personal-form');
@@ -81,14 +88,14 @@ const favoritesState = {
   query: '',
   category: 'all',
   page: 1,
-  pageSize: 20,
+  pageSize: 24,
 };
 const ordersState = {
   items: [],
   pendingPage: 1,
-  pendingPageSize: 20,
+  pendingPageSize: 8,
   completedPage: 1,
-  completedPageSize: 20,
+  completedPageSize: 8,
   completedQuery: '',
   completedDateWindowDays: 'all',
 };
@@ -96,9 +103,9 @@ const ordersState = {
 const installmentsState = {
   items: [],
   pendingPage: 1,
-  pendingPageSize: 20,
+  pendingPageSize: 8,
   completedPage: 1,
-  completedPageSize: 20,
+  completedPageSize: 8,
 };
 
 function renderPendingOrdersPagination(totalItems) {
@@ -349,11 +356,15 @@ function getActiveUserId() {
 function setSession(session) {
   window.localStorage.setItem(CURRENT_USER_STORAGE_KEY, String(session.user.id));
   window.localStorage.setItem(SESSION_TOKEN_STORAGE_KEY, session.session.session_token);
+  if (session.user.role) {
+    window.localStorage.setItem(ROLE_STORAGE_KEY, session.user.role);
+  }
 }
 
 function clearSession() {
   window.localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
   window.localStorage.removeItem(SESSION_TOKEN_STORAGE_KEY);
+  window.localStorage.removeItem(ROLE_STORAGE_KEY);
 }
 
 function getInitials(firstName, lastName) {
@@ -1122,7 +1133,7 @@ function renderFavorites(favoriteProducts = []) {
           <div class="summary-record-head">
             <div>
               <strong>${escapeHtml(product.product_name)}</strong>
-              <p class="form-helper">${escapeHtml(product.category_name || 'Uncategorized')} / ${escapeHtml(product.brand || 'Bluehaven Select')}</p>
+              <p class="form-helper">${escapeHtml(product.category_name || 'Uncategorized')} / ${escapeHtml(product.brand || 'Bazaar Select')}</p>
             </div>
             <div class="account-section-actions">
               <span class="summary-pill">${escapeHtml(formatCurrency(product.cost, product.currency_code))}</span>
@@ -1550,8 +1561,15 @@ function populateAccountPersonalForm(userPayload) {
 function applyUserDetails(userPayload) {
   currentUser = userPayload;
 
+  if (userPayload.role) {
+    window.localStorage.setItem(ROLE_STORAGE_KEY, userPayload.role);
+  }
+  if (adminDashboardLink) {
+    adminDashboardLink.hidden = userPayload.role !== 'admin';
+  }
+
   if (accountName) {
-    accountName.textContent = `${userPayload.first_name} ${userPayload.last_name}`.trim() || 'Bluehaven Customer';
+    accountName.textContent = `${userPayload.first_name} ${userPayload.last_name}`.trim() || 'Bazaar Customer';
   }
   if (accountEmail) {
     accountEmail.textContent = userPayload.email || '';
@@ -2074,6 +2092,46 @@ if (ordersDateFilter) {
     ordersState.completedDateWindowDays = event.currentTarget.value;
     ordersState.completedPage = 1;
     renderOrders(ordersState.items);
+  });
+}
+
+if (ordersPendingPageSize) {
+  ordersPendingPageSize.addEventListener('change', (event) => {
+    ordersState.pendingPageSize = Number(event.currentTarget.value);
+    ordersState.pendingPage = 1;
+    renderOrders(ordersState.items);
+  });
+}
+
+if (ordersCompletedPageSize) {
+  ordersCompletedPageSize.addEventListener('change', (event) => {
+    ordersState.completedPageSize = Number(event.currentTarget.value);
+    ordersState.completedPage = 1;
+    renderOrders(ordersState.items);
+  });
+}
+
+if (installmentsPendingPageSize) {
+  installmentsPendingPageSize.addEventListener('change', (event) => {
+    installmentsState.pendingPageSize = Number(event.currentTarget.value);
+    installmentsState.pendingPage = 1;
+    renderInstallmentPurchases();
+  });
+}
+
+if (installmentsCompletedPageSize) {
+  installmentsCompletedPageSize.addEventListener('change', (event) => {
+    installmentsState.completedPageSize = Number(event.currentTarget.value);
+    installmentsState.completedPage = 1;
+    renderInstallmentPurchases();
+  });
+}
+
+if (favoritesPageSize) {
+  favoritesPageSize.addEventListener('change', (event) => {
+    favoritesState.pageSize = Number(event.currentTarget.value);
+    favoritesState.page = 1;
+    renderFavorites(favoritesState.items);
   });
 }
 

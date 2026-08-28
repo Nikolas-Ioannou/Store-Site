@@ -6,7 +6,6 @@
     'NovaBook Pro 15': 'Photos/image.png',
     'Pulse X12': 'Photos/iphone.png',
     'SketchTab 11': 'Photos/image.png',
-    'Future of Consumer Tech': 'Photos/home.png',
     'AeroBuds Lite': 'Photos/social-media.png',
   };
 
@@ -14,8 +13,6 @@
     electronics: 'Photos/shopping-store.png',
     phones: 'Photos/iphone.png',
     tablets: 'Photos/image.png',
-    books: 'Photos/home.png',
-    accessories: 'Photos/shopping-cart.png',
   };
 
   const SPECS_BY_CATEGORY = {
@@ -36,18 +33,6 @@
       { label: 'Storage', value: '128GB' },
       { label: 'Battery', value: 'Up to 10 hours' },
       { label: 'Warranty', value: '2-year manufacturer' },
-    ],
-    books: [
-      { label: 'Format', value: 'Paperback' },
-      { label: 'Language', value: 'English' },
-      { label: 'Publisher', value: 'Bluehaven Press' },
-      { label: 'Pages', value: 'Varies by title' },
-    ],
-    accessories: [
-      { label: 'Connectivity', value: 'Bluetooth 5.3' },
-      { label: 'Battery', value: 'Up to 24 hours' },
-      { label: 'Compatibility', value: 'Universal' },
-      { label: 'Warranty', value: '1-year manufacturer' },
     ],
   };
 
@@ -136,7 +121,7 @@
     if (!el) return;
 
     const categoryLink = product.category_slug
-      ? `<a href="index.html?category=${encodeURIComponent(product.category_slug)}#product-browser">${escapeHtml(product.category_name || '')}</a>`
+      ? `<a href="products.html?category=${encodeURIComponent(product.category_slug)}">${escapeHtml(product.category_name || '')}</a>`
       : '';
 
     el.innerHTML = `
@@ -373,7 +358,8 @@
     currentProduct = product;
 
     document.getElementById('productName').textContent = product.product_name;
-    document.getElementById('productCode').textContent = `SKU-${String(product.product_id).padStart(6, '0')}`;
+    document.getElementById('productCode').textContent = String(product.product_id).padStart(6, '0');
+    document.getElementById('productCategory').textContent = product.category_name || '';
     document.getElementById('productDescription').textContent = product.description || 'No description available';
     document.getElementById('deliveryDate').textContent = getDeliveryDate();
     renderBreadcrumb(product);

@@ -16,8 +16,19 @@ HOST = '127.0.0.1'
 PORT = 8000
 MAX_INVOICE_PROFILES = 5
 STATIC_EXTENSIONS = {'.html', '.css', '.js', '.svg', '.png', '.jpg', '.jpeg', '.webp', '.avif'}
+UPLOAD_DIR = ROOT_DIR / 'Photos' / 'products'
+UPLOAD_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 db = StoreDatabase()
 db.initialize()
+
+
+class ApiError(Exception):
+    """An error that should be reported with a specific HTTP status rather than the
+    default 400 (ValueError) or 500 (uncaught exception)."""
+
+    def __init__(self, message, status=HTTPStatus.BAD_REQUEST):
+        super().__init__(message)
+        self.status = status
 
 
 def row_to_dict(row):
@@ -38,6 +49,82 @@ def parse_json_body(handler):
     if not raw_body:
         return {}
     return json.loads(raw_body.decode('utf-8'))
+
+
+def parse_multipart_form(handler):
+    """Parses a multipart/form-data request body using only the stdlib.
+
+    Returns (fields, files) where fields is {name: str} (last value wins for
+    repeated names) and files is a list of {field_name, filename, content_type,
+    data} dicts, preserving every part for fields like a multi-file picker
+    where several parts share the same field name.
+    """
+    content_type = handler.headers.get('Content-Type', '')
+    if 'multipart/form-data' not in content_type:
+        raise ApiError('Expected multipart/form-data request')
+
+    boundary_match = re.search(r'boundary=(?:"([^"]+)"|([^;]+))', content_type)
+    if not boundary_match:
+        raise ApiError('Missing multipart boundary')
+    boundary = (boundary_match.group(1) or boundary_match.group(2)).strip()
+    boundary_bytes = ('--' + boundary).encode('utf-8')
+
+    content_length = int(handler.headers.get('Content-Length', '0'))
+    raw_body = handler.rfile.read(content_length) if content_length else b''
+
+    fields = {}
+    files = []
+    raw_parts = raw_body.split(boundary_bytes)
+    for raw_part in raw_parts[1:-1]:
+        if raw_part.startswith(b'--'):
+            continue
+        part = raw_part[2:]
+        if part.endswith(b'\r\n'):
+            part = part[:-2]
+        header_blob, separator, part_body = part.partition(b'\r\n\r\n')
+        if separator != b'\r\n\r\n':
+            continue
+
+        headers_text = header_blob.decode('utf-8', errors='replace')
+        disposition_match = re.search(r'Content-Disposition:\s*form-data;\s*(.+)', headers_text, re.IGNORECASE)
+        if not disposition_match:
+            continue
+        disposition_params = disposition_match.group(1)
+        name_match = re.search(r'name="([^"]*)"', disposition_params)
+        if not name_match:
+            continue
+        field_name = name_match.group(1)
+
+        filename_match = re.search(r'filename="([^"]*)"', disposition_params)
+        if filename_match:
+            filename = filename_match.group(1)
+            if not filename:
+                continue
+            part_content_type_match = re.search(r'Content-Type:\s*(.+)', headers_text, re.IGNORECASE)
+            part_content_type = part_content_type_match.group(1).strip() if part_content_type_match else 'application/octet-stream'
+            files.append({
+                'field_name': field_name,
+                'filename': filename,
+                'content_type': part_content_type,
+                'data': part_body,
+            })
+        else:
+            fields[field_name] = part_body.decode('utf-8', errors='replace')
+
+    return fields, files
+
+
+def save_uploaded_photo(uploaded_file, product_id):
+    original_name = uploaded_file['filename']
+    extension = Path(original_name).suffix.lower()
+    if extension not in UPLOAD_EXTENSIONS:
+        raise ApiError(f'Unsupported image type: {extension or "unknown"}')
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    safe_name = f'product-{product_id}-{secrets.token_hex(6)}{extension}'
+    destination = UPLOAD_DIR / safe_name
+    destination.write_bytes(uploaded_file['data'])
+    return f'Photos/products/{safe_name}'
 
 
 def utc_timestamp():
@@ -113,6 +200,23 @@ def build_session_payload(session_token):
     return payload
 
 
+def require_admin_user(session_token):
+    if not session_token:
+        raise ApiError('Admin session token is required', HTTPStatus.UNAUTHORIZED)
+
+    payload = build_session_payload(session_token)
+    if payload is None:
+        raise ApiError('Invalid or expired session', HTTPStatus.UNAUTHORIZED)
+
+    user = payload['user']
+    if user.get('role') != 'admin':
+        raise ApiError('Admin access required', HTTPStatus.FORBIDDEN)
+    if int(user.get('is_active') or 0) != 1:
+        raise ApiError('Admin account is inactive', HTTPStatus.FORBIDDEN)
+
+    return user
+
+
 def build_cart_payload(cart_id):
     cart = db.fetch_one(
         '''
@@ -132,11 +236,13 @@ def build_cart_payload(cart_id):
             ci.product_id,
             p.sku,
             p.name AS product_name,
+            pp.photo_url AS primary_photo_url,
             ci.quantity,
             ci.unit_price,
             ci.quantity * ci.unit_price AS line_total
         FROM cart_items ci
         INNER JOIN products p ON p.id = ci.product_id
+        LEFT JOIN product_photos pp ON pp.product_id = p.id AND pp.is_primary = 1
         WHERE ci.cart_id = ?
         ORDER BY ci.id ASC
         ''',
@@ -495,7 +601,14 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             if order_match:
                 return self.handle_get_order(int(order_match.group(1)))
 
+            if path == '/api/admin/products':
+                return self.handle_get_admin_products(query)
+            if path == '/api/admin/stats':
+                return self.handle_get_admin_stats(query)
+
             return self.serve_static(path)
+        except ApiError as error:
+            return self.send_json({'error': str(error)}, error.status)
         except ValueError as error:
             return self.send_json({'error': str(error)}, HTTPStatus.BAD_REQUEST)
         except Exception as error:
@@ -506,6 +619,9 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         path = parsed_url.path
 
         try:
+            if path == '/api/admin/products':
+                return self.handle_create_admin_product()
+
             body = parse_json_body(self)
 
             if path == '/api/users':
@@ -550,6 +666,8 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 return self.handle_create_product_review(int(product_reviews_match.group(1)), body)
 
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
+        except ApiError as error:
+            return self.send_json({'error': str(error)}, error.status)
         except ValueError as error:
             return self.send_json({'error': str(error)}, HTTPStatus.BAD_REQUEST)
         except json.JSONDecodeError:
@@ -605,6 +723,8 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
                 )
 
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
+        except ApiError as error:
+            return self.send_json({'error': str(error)}, error.status)
         except ValueError as error:
             return self.send_json({'error': str(error)}, HTTPStatus.BAD_REQUEST)
         except json.JSONDecodeError:
@@ -615,6 +735,7 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
     def do_DELETE(self):
         parsed_url = urlparse(self.path)
         path = parsed_url.path
+        query = parse_qs(parsed_url.query)
 
         try:
             cart_item_match = re.fullmatch(r'/api/carts/(\d+)/items/(\d+)', path)
@@ -635,12 +756,18 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
             if invoice_match:
                 return self.handle_delete_invoice_profile(int(invoice_match.group(1)), int(invoice_match.group(2)))
 
+            admin_product_match = re.fullmatch(r'/api/admin/products/(\d+)', path)
+            if admin_product_match:
+                return self.handle_delete_admin_product(int(admin_product_match.group(1)), query)
+
             return self.send_json({'error': 'Route not found'}, HTTPStatus.NOT_FOUND)
+        except ApiError as error:
+            return self.send_json({'error': str(error)}, error.status)
         except Exception as error:
             return self.send_json({'error': str(error)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def handle_get_categories(self):
-        rows = db.fetch_all('SELECT id, name, slug, created_at FROM categories ORDER BY name ASC')
+        rows = db.fetch_all('SELECT id, name, slug, sort_order, created_at FROM categories ORDER BY sort_order ASC, name ASC')
         self.send_json({'items': rows_to_dicts(rows)})
 
     def handle_get_shipping_methods(self):
@@ -781,6 +908,126 @@ class StoreRequestHandler(BaseHTTPRequestHandler):
         payload['photos'] = rows_to_dicts(photos)
         payload['description_photos'] = rows_to_dicts(description_photos)
         self.send_json(payload)
+
+    def handle_get_admin_products(self, query):
+        token = query.get('token', [''])[0].strip()
+        require_admin_user(token)
+
+        rows = db.fetch_all('SELECT * FROM view_product_catalog ORDER BY product_id DESC')
+        self.send_json({'items': rows_to_dicts(rows)})
+
+    def handle_create_admin_product(self):
+        fields, files = parse_multipart_form(self)
+        require_admin_user(fields.get('token', '').strip())
+
+        name = fields.get('name', '').strip()
+        category_id = fields.get('category_id', '').strip()
+        price = fields.get('price', '').strip()
+        description = fields.get('description', '').strip()
+
+        if not name or not category_id or not price or not description:
+            raise ValueError('name, category_id, price, and description are required')
+
+        category = db.fetch_one('SELECT id FROM categories WHERE id = ?', (int(category_id),))
+        if category is None:
+            raise ValueError('category_id does not match an existing category')
+
+        try:
+            selling_price = float(price)
+        except ValueError:
+            raise ValueError('price must be a number')
+        if selling_price < 0:
+            raise ValueError('price must not be negative')
+
+        compare_at_price = fields.get('compare_at_price', '').strip()
+        compare_at_price = float(compare_at_price) if compare_at_price else None
+        if compare_at_price is not None and compare_at_price < 0:
+            raise ValueError('compare_at_price must not be negative')
+
+        stock_quantity = fields.get('stock_quantity', '').strip()
+        stock_quantity = int(stock_quantity) if stock_quantity else 0
+        if stock_quantity < 0:
+            raise ValueError('stock_quantity must not be negative')
+
+        max_installments = fields.get('max_installments', '').strip()
+        max_installments = int(max_installments) if max_installments else None
+        if max_installments is not None and max_installments < 2:
+            raise ValueError('max_installments must be at least 2')
+
+        brand = fields.get('brand', '').strip() or None
+        photo_files = [file for file in files if file['field_name'] == 'photos']
+        if not photo_files:
+            raise ValueError('At least one product photo is required')
+
+        sku = f'ADM-{secrets.token_hex(4).upper()}'
+
+        product_id = db.execute(
+            '''
+            INSERT INTO products (
+                sku, name, category_id, brand, selling_price, compare_at_price,
+                description, stock_quantity, max_installments, is_active
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            ''',
+            (sku, name, int(category_id), brand, selling_price, compare_at_price, description, stock_quantity, max_installments),
+        )
+
+        for index, photo_file in enumerate(photo_files):
+            photo_url = save_uploaded_photo(photo_file, product_id)
+            db.execute(
+                '''
+                INSERT INTO product_photos (product_id, photo_url, alt_text, sort_order, is_primary)
+                VALUES (?, ?, ?, ?, ?)
+                ''',
+                (product_id, photo_url, name, index + 1, 1 if index == 0 else 0),
+            )
+
+        product = db.fetch_one('SELECT * FROM view_product_catalog WHERE product_id = ?', (product_id,))
+        self.send_json(row_to_dict(product), HTTPStatus.CREATED)
+
+    def handle_delete_admin_product(self, product_id, query):
+        token = query.get('token', [''])[0].strip()
+        require_admin_user(token)
+
+        product = db.fetch_one('SELECT id FROM products WHERE id = ?', (product_id,))
+        if product is None:
+            return self.send_json({'error': 'Product not found'}, HTTPStatus.NOT_FOUND)
+
+        db.execute('UPDATE products SET is_active = 0, updated_at = ? WHERE id = ?', (utc_timestamp(), product_id))
+        self.send_json({'status': 'removed', 'product_id': product_id})
+
+    def handle_get_admin_stats(self, query):
+        token = query.get('token', [''])[0].strip()
+        require_admin_user(token)
+
+        product_counts = db.fetch_one(
+            '''
+            SELECT
+                COUNT(*) AS total_products,
+                SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_products,
+                SUM(CASE WHEN is_active = 0 THEN 1 ELSE 0 END) AS inactive_products
+            FROM products
+            '''
+        )
+        order_counts = db.fetch_one(
+            '''
+            SELECT
+                COUNT(*) AS total_orders,
+                SUM(CASE WHEN status NOT IN ('completed', 'cancelled') THEN 1 ELSE 0 END) AS open_orders
+            FROM orders
+            '''
+        )
+
+        stats = {
+            'total_revenue': row_to_dict(db.fetch_one('SELECT * FROM view_total_revenue')),
+            'product_counts': row_to_dict(product_counts),
+            'order_counts': row_to_dict(order_counts),
+            'trending_products': rows_to_dicts(db.fetch_all('SELECT * FROM view_trending_products LIMIT 6')),
+            'best_seller_categories': rows_to_dicts(db.fetch_all('SELECT * FROM view_best_seller_categories LIMIT 6')),
+            'low_stock_products': rows_to_dicts(db.fetch_all('SELECT * FROM view_low_stock_products LIMIT 8')),
+            'recent_orders': rows_to_dicts(db.fetch_all('SELECT * FROM view_order_overview ORDER BY order_id DESC LIMIT 8')),
+        }
+        self.send_json(stats)
 
     def handle_get_product_reviews(self, product_id):
         product = db.fetch_one('SELECT product_id FROM view_product_catalog WHERE product_id = ?', (product_id,))

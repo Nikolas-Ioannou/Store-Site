@@ -147,8 +147,7 @@ INSERT INTO cart_items (
 )
 VALUES
     (1, 1, 1, 1149.00),
-    (1, 5, 2, 79.00),
-    (2, 4, 1, 24.00);
+    (1, 4, 2, 79.00);
 
 INSERT INTO orders (
     order_number,
@@ -197,7 +196,7 @@ INSERT INTO order_items (
 )
 VALUES
     (1, 1, 'LAP-NOVA-15-001', 'NovaBook Pro 15', 1, 1149.00, 1149.00),
-    (1, 5, 'ACC-BUDS-AIR-001', 'AeroBuds Lite', 2, 79.00, 158.00);
+    (1, 4, 'ACC-BUDS-AIR-001', 'AeroBuds Lite', 2, 79.00, 158.00);
 
 INSERT INTO payments (
     order_id,
@@ -284,9 +283,8 @@ VALUES
     (1, 1, 'reservation', -1, 'order', 1, 'Reserved for order BH-20260503-0001.'),
     (2, 1, 'stock_in', 40, 'seed', 2, 'Initial stock import.'),
     (3, 1, 'stock_in', 33, 'seed', 3, 'Initial stock import.'),
-    (4, 1, 'stock_in', 120, 'seed', 4, 'Initial stock import.'),
-    (5, 1, 'stock_in', 77, 'seed', 5, 'Initial stock import.'),
-    (5, 1, 'reservation', -2, 'order', 1, 'Reserved for order BH-20260503-0001.');
+    (4, 1, 'stock_in', 77, 'seed', 4, 'Initial stock import.'),
+    (4, 1, 'reservation', -2, 'order', 1, 'Reserved for order BH-20260503-0001.');
 
 INSERT INTO inventory_reservations (
     order_id,
@@ -296,7 +294,7 @@ INSERT INTO inventory_reservations (
 )
 VALUES
     (1, 1, 1, 'reserved'),
-    (1, 5, 2, 'reserved');
+    (1, 4, 2, 'reserved');
 
 -- ── Completed order (BH-20260410-0002) ──────────────────────────────────────
 
@@ -348,8 +346,8 @@ INSERT INTO order_items (
 VALUES
     (2, 2, 'ACC-KBD-MEC-001', 'MechType Pro Keyboard', 1, 129.00, 129.00),
     (2, 3, 'ACC-MSE-ERG-001', 'ErgoClick Mouse', 1, 59.00, 59.00),
-    (2, 4, 'BK-DSGN-WEB-001', 'Web Design Mastery', 2, 24.00, 48.00),
-    (2, 5, 'ACC-BUDS-AIR-001', 'AeroBuds Lite', 1, 79.00, 79.00);
+    (2, NULL, 'BK-DSGN-WEB-001', 'Web Design Mastery', 2, 24.00, 48.00),
+    (2, 4, 'ACC-BUDS-AIR-001', 'AeroBuds Lite', 1, 79.00, 79.00);
 
 INSERT INTO payments (
     order_id,

@@ -80,7 +80,7 @@ function updateSidebar(userPayload) {
     sidebarAvatar.textContent = getInitials(userPayload.first_name, userPayload.last_name);
   }
   if (sidebarName) {
-    sidebarName.textContent = `${userPayload.first_name} ${userPayload.last_name}`.trim() || 'Bluehaven Customer';
+    sidebarName.textContent = `${userPayload.first_name} ${userPayload.last_name}`.trim() || 'Bazaar Customer';
   }
   if (sidebarEmail) {
     sidebarEmail.textContent = userPayload.email || '';
